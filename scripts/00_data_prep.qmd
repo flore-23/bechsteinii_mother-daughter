@@ -4,8 +4,7 @@ author:
   name: "Flore Michel"
   email: flore.michel@unil.ch
   affiliation:
-    name: University of Lausanne
-    department: Ecology and Evolution
+    name: University of Lausanne, Departement of Ecology and Evolution
 execute:                            # Global options for code chunks
   echo: true                        # Show code globally
   warning: false                    # Hide warnings globally
@@ -17,7 +16,7 @@ format:                             # Global options for rendering the document
     toc-location: left              # Sets the location of the toc
     toc-depth: 2                    # Sets the number of levels for the toc
     number-sections: true           # Add automatic section number
-    number-depth: 3                 # Sets the maximum numberin level e.g. 2.2.1
+    number-depth: 2                 # Sets the maximum numberin level e.g. 2.2.1
     code-fold: true                 # Code chunk can be expanded
     fig-cap-location: bottom        # Location of figure captions [top, bottom]
     lightbox: true                  # When clicking on a figure it is expanded
@@ -27,8 +26,14 @@ format:                             # Global options for rendering the document
       dark: slate                   # [cyborg, darkly, solar, superhero, vapor, ...]
 #bibliography: bib/workshop.bib.     # References used in the document
 #csl: bib/apa.csl                    # Citation style for rendering the references
-bibliography: references.bib
 ---
 
-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
+# Introduction 
 
+This first script imports, clean and prepares raw association data collected from *Myotis bechsteinii* in two colonies (GB2 and UA), near Wurzburg in Germany between 2013 and 2023.
+
+### Data description
+
+-   **Raw roost datasets**: one data set for each year, each row representing a day of observation, column names represent the individuals in the colony. Number in the table represent the roost number where the individual spent the day.
+
+-   **Mother-daughter file**: One for each colony, 
