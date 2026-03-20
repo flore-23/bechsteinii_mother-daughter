@@ -1,6 +1,0 @@
-"0","#remove legend"
-"0","p_net_GB2 <- p_net_GB2 +"
-"0","  theme(legend.position = ""none"")"
-"0",""
-"0","networks_stacked <- p_net_GB2 /"
-"0","                    p_net_UA"

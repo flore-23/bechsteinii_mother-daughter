@@ -1,4 +1,0 @@
-"0","assoc_mother_daughter_UA<-edges_UA$weight[edges_UA$pair_type==""mother-daughter""]"
-"0","assoc_other_UA<-edges_UA$weight[edges_UA$pair_type!=""mother-daughter""]"
-"0",""
-"0","hist(assoc_mother_daughter_UA, main=""Distribution of associations for mother-daughter pairs"", xlab=""association strength"")"

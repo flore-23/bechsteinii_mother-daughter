@@ -1,3 +1,0 @@
-"0",""
-"0","simulationOutput_interaction <- simulateResiduals(fittedModel = model_interaction_GB2, n = 1000)"
-"0","plot(simulationOutput_interaction)"

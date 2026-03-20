@@ -1,3 +1,0 @@
-"0",""
-"0","#check distribution of the weight"
-"0","qqnorm(edges_UA$weight, main=""QQ-Plot of association strength"")"

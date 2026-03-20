@@ -1,2 +1,0 @@
-"0","edges_GB2<-read.csv(here(""data"",""saved_matrices"",""GB2"",""full"",""full_edges_GB2.csv""),header=TRUE, row.names=NULL,sep="","",check.names = F)"
-"0","mother_daughter_GB2<-read.csv(here(""data"",""mother_daughter_GB2.csv""),header=TRUE, row.names=NULL,sep="","",check.names = F)"

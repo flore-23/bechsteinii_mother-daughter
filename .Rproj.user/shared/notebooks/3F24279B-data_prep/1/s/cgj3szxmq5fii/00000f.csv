@@ -1,4 +1,0 @@
-"0","net_U2016 <- get_network(GBI_U2016, data_format = ""GBI"", association_index = ""SRI"")"
-"1","Generating  26  x  26  matrix
-"
-"0","write.csv(net_U2016, here(""data"",""saved_matrices"",""UA"",""net_U2016.csv""), row.names = TRUE)"

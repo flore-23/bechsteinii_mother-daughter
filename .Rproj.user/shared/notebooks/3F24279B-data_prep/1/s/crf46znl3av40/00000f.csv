@@ -1,4 +1,0 @@
-"0","UA_2018<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_UA_2018_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
-"0","UA_2018<-UA_2018[c(1:27)] #filter columns"
-"0","names(UA_2018)[names(UA_2018) == ""D6CC""] <- ""FA5B"""
-"0","names(UA_2018)[names(UA_2018) == ""0B43""] <- ""101F"""

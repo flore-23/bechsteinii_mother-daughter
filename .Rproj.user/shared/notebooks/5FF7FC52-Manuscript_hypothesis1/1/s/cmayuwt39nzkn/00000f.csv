@@ -1,5 +1,0 @@
-"0","edges_GB2_new <- edges_GB2 %>%"
-"0","  filter(year != 2019)"
-"0",""
-"0","#center the numeric variable"
-"0","edges_GB2_new$colony_size_c <- scale(edges_GB2_new$colony_size, center = TRUE, scale = FALSE)"

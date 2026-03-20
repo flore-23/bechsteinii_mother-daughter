@@ -1,8 +1,0 @@
-"0",""
-"0","ggplot(perm_coefs_df_UA, aes(x = `other`)) +"
-"0","  geom_histogram(bins = 30, fill = ""darkgrey"", color = ""black"") +"
-"0","  geom_vline(xintercept = obs_coef[""pair_type_2other""], color = ""red"", size=1.1) +"
-"0","  labs(title = ""Distribution of permuted coefficient - other"","
-"0","       x = ""Coefficient value"","
-"0","       y = ""Frequency"") +"
-"0","  theme_minimal()"

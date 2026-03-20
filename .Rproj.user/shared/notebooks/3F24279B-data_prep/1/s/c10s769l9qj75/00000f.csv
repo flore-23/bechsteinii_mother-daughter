@@ -1,3 +1,0 @@
-"0","UA_2020<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_UA_2020_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
-"0","UA_2020<-UA_2020[c(1:24)] #filter columns"
-"0","UA_2020<-UA_2020[1:28,]"

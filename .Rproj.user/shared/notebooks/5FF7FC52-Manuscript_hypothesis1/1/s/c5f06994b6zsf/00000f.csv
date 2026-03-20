@@ -1,2 +1,0 @@
-"0","#center the colony variable"
-"0","edges_UA$colony_size_c <- scale(edges_UA$colony_size, center = TRUE, scale = FALSE)"

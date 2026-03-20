@@ -1,3 +1,0 @@
-"0","GB2_2015<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_GB2_2015_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
-"2","Error in file(file, ""rt"") : cannot open the connection
-"

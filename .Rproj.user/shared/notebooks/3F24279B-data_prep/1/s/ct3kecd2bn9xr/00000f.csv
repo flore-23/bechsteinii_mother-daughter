@@ -1,2 +1,0 @@
-"0","UA_2017<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_UA_2017_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
-"0","UA_2017<-UA_2017[c(1:30)] #filter columns"

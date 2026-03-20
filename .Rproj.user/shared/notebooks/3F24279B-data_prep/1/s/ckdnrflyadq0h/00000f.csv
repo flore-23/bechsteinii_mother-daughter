@@ -1,8 +1,0 @@
-"0","GB2_2014<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_GB2_2014_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
-"0","GB2_2014<-GB2_2014[c(0:40)] #filter columns"
-"0","GB2_2014<-GB2_2014[1:51,]"
-"0","GB2_2014 <- GB2_2014[, -4]"
-"0","GB2_2014 <- GB2_2014[, -3]"
-"0","GB2_2014 <- GB2_2014[, -2]"
-"0","colnames(GB2_2014)[colnames(GB2_2014) == ""number""] <- ""date"""
-"0","GB2_2014 <- GB2_2014[, !(colnames(GB2_2014) %in% c(""E4D5"", ""B661""))]"

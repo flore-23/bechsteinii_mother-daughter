@@ -1,8 +1,0 @@
-"0","UA_2023<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_UA_2023_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
-"0","UA_2023<-UA_2023[c(1:29)]"
-"0",""
-"0",""
-"0","colnames(UA_2023)[colnames(UA_2023) == ""Date""] <- ""date"""
-"0","mother_daughter_UA$rfid_off[mother_daughter_UA$rfid_off == ""AE33""] <- ""F50E"""
-"0",""
-"0",""
