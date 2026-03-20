@@ -1,0 +1,6 @@
+"0","GB2_2020<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_GB2_2020_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
+"0","GB2_2020<-GB2_2020[c(1:51)] #filter columns"
+"0","GB2_2020<-GB2_2020[1:27,]"
+"0",""
+"0","GB2_2020 <- GB2_2020 %>%"
+"0","  mutate(across(everything(), ~ replace(., . == """", NA)))"

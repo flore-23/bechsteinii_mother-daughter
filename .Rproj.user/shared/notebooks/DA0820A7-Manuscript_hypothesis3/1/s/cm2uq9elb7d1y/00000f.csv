@@ -1,0 +1,5 @@
+"0","centrality_perm_pooled_numeric_UA <- run_permutation_pooled_numeric_UA("
+"0","  df = centrality_UA,"
+"0","  responses = c(""strength_z"", ""eigen_z"", ""closeness_z""),"
+"0","  n_perm = 1000"
+"0",")"

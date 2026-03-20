@@ -1,0 +1,21 @@
+"0","#rapid check 
+sapply(
+  which(mother_daughter_GB2$year == 2014),
+  function(i) {
+    md_pair <- sort(c(mother_daughter_GB2$rfid_mom[i], mother_daughter_GB2$rfid_off[i]))
+    md_pairID <- paste(md_pair, collapse = ""-"")
+    md_pairID %in% edge_G2014$pairID
+  }
+)
+"
+"1","[1]"
+"1","  TRUE"
+"1","  TRUE"
+"1","  TRUE"
+"1"," FALSE"
+"1","  TRUE"
+"1","  TRUE"
+"1","  TRUE"
+"1","  TRUE"
+"1","
+"

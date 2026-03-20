@@ -1,0 +1,6 @@
+"0",""
+"0","ggplot(edges_GB2, aes(x = pair_type, y = weight)) +"
+"0","  geom_boxplot()  +"
+"0","  theme_minimal() +"
+"0","  labs(title = ""Associations strength of mother-daughter pairs and other pairs"", "
+"0","       x = ""pair type"", y = ""strength"")"

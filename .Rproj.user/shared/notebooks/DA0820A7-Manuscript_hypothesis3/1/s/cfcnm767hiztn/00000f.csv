@@ -1,0 +1,44 @@
+"0","GBI_U2013 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2013.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2013<-get_network(GBI_U2013,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  22  x  22  matrix
+"
+"0","GBI_U2014 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2014.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2014<-get_network(GBI_U2014,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  24  x  24  matrix
+"
+"0","GBI_U2015 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2015.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2015<-get_network(GBI_U2015,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  25  x  25  matrix
+"
+"0","GBI_U2016 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2016.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2016<-get_network(GBI_U2016,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  26  x  26  matrix
+"
+"0","GBI_U2017 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2017.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2017<-get_network(GBI_U2017,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  31  x  31  matrix
+"
+"0","GBI_U2018 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2018.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2018<-get_network(GBI_U2018,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  29  x  29  matrix
+"
+"0","GBI_U2019 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2019.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2019<-get_network(GBI_U2019,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  26  x  26  matrix
+"
+"0","GBI_U2020 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2020.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2020<-get_network(GBI_U2020,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  25  x  25  matrix
+"
+"0","GBI_U2021 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2021.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2021<-get_network(GBI_U2021,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  27  x  27  matrix
+"
+"0","GBI_U2022 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2022.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2022<-get_network(GBI_U2022,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  26  x  26  matrix
+"
+"0","GBI_U2023 <- read.csv(here(""data"",""saved_matrices"",""UA"",""full"",""fullGBI_U2023.csv""),header=TRUE,sep="","",check.names = F,row.names = 1);"
+"0","net_U2023<-get_network(GBI_U2023,data_format = ""GBI"",association_index = ""SRI"")"
+"1","Generating  26  x  26  matrix
+"

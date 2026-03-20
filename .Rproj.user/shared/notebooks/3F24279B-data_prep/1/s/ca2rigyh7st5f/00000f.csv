@@ -1,0 +1,4 @@
+"0","net_G2022 <- get_network(GBI_G2022, data_format = ""GBI"", association_index = ""SRI"")"
+"1","Generating  55  x  55  matrix
+"
+"0","write.csv(net_G2022, here(""data"",""saved_matrices"",""GB2"",""net_G2022.csv""), row.names = TRUE)"

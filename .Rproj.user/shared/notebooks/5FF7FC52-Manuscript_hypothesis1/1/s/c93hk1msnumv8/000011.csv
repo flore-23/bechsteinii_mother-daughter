@@ -1,0 +1,2 @@
+"0","simulationOutput <- simulateResiduals(fittedModel = model_GB2, n = 1000)"
+"0","plot(simulationOutput)"

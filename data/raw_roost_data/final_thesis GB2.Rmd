@@ -1,0 +1,3072 @@
+---
+title: "Thesis-Analysis-GB2"
+output: word_document
+date: "2025-02-04"
+---
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "C:/Users/flo_r/Desktop/master thesis/data/data in CSV/")
+
+library(igraph)
+library(asnipe)
+library(sna)
+library(assocInd)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(ggplot2)
+library(tidyverse)
+library(viridis)
+library(patchwork)
+library(hrbrthemes)
+library(igraph)
+library(ggraph)
+library(colormap)
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(tidygraph)
+library(RColorBrewer)
+```
+
+# GB2 2013 — (￣\^￣)ゞ
+
+```{r}
+GB2_2013<-read.csv("CSV_Dayroosts_GB2_2013_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+GB2_2013<-GB2_2013[c(0:30)]
+GB2_2013 <- GB2_2013[, -4]
+GB2_2013 <- GB2_2013[, -3]
+GB2_2013 <- GB2_2013[, -2]
+colnames(GB2_2013)[colnames(GB2_2013) == "number"] <- "date"
+```
+
+##GBI matrix
+```{r}
+data_G2013<- GB2_2013 %>%pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2013$daygroup<-as.factor(paste(data_G2013$date, data_G2013$box, sep="_"))
+
+ind_G2013<-data.table(ID=c(data_G2013$ID), group=data_G2013$daygroup, day=c(data_G2013$date)) #df with 3 col: ID, group and day 
+GBI_G2013<- get_group_by_individual(ind_G2013, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2013 <- as.matrix(GBI_G2013)
+```
+
+## network
+```{r}
+net_G2013<-get_network(GBI_G2013,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2013 <- graph_from_adjacency_matrix(net_G2013,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2013,vertex.label = V(g_G2013)$name,edge.width = E(g_G2013)$weight * 10, layout = layout_with_fr, vertex.color = "lightblue") 
+```
+##### threshold?
+```{r}
+threshold_G2013 <- mean(net_G2013, na.rm = TRUE) +  sd(net_G2013, na.rm = TRUE)
+
+gfilter_G2013 <- delete_edges(g_G2013, E(g_G2013)[weight < threshold_G2013]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2013, edge.width = E(gfilter_G2013)$weight*6,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7)
+```
+
+##vertex attributes "mother" "daughter" or "other"
+```{r}
+mother_daughter_pairs_G2013<-data.frame(mother=c("B587","6D0D","07F9","0D1B","24E9"),daughter=c("5672","4C7B","BF04","4FE4","41C1"))
+mother_daughter_pairs_G2013$pairID<-c(1:nrow(mother_daughter_pairs_G2013))
+
+mother_ids_G2013<- mother_daughter_pairs_G2013$mother
+daughter_ids_G2013<- mother_daughter_pairs_G2013$daughter
+
+V(g_G2013)$type <- "other"  # default value
+V(g_G2013)[V(g_G2013)$name %in% mother_ids_G2013]$type   <- "mother-daughter"
+V(g_G2013)[V(g_G2013)$name %in% daughter_ids_G2013]$type <- "mother-daughter"
+
+plot(gfilter_G2013, edge.width = E(g_G2013)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2013)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2013)$name)
+```
+### "pair ID" and add the color
+```{r}
+md_lookup_G2013<- mother_daughter_pairs_G2013 %>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2013<- match(V(g_G2013)$name, md_lookup_G2013$ID)   # returns NA if the name is not found
+V(g_G2013)$pairID <- md_lookup_G2013$pairID[IDs_G2013] 
+
+pair_IDs_G2013<- factor(V(g_G2013)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2013<-length(levels(na.omit(pair_IDs_G2013)))
+my_palette_G2013<-brewer.pal(n = max(3,n_pairs_G2013), name = "Set2") 
+
+# Map each vertex to the correct color
+pair_colors_G2013 <- my_palette_G2013[pair_IDs_G2013]
+pair_colors_G2013[is.na(pair_colors_G2013)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2013, edge.width = E(gfilter_G2013)$weight*6,edge.curved=F,vertex.color =pair_colors_G2013, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2013 <- levels(na.omit(pair_IDs_G2013))
+legend_colors_G2013 <- my_palette_G2013[seq_along(pair_levels_G2013)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2013), "random pair"),
+  col    = c(legend_colors_G2013, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2013 <-  igraph::as_data_frame(g_G2013, what="edges")
+
+vtype_G2013<- V(g_G2013)$type
+names(vtype_G2013) <- V(g_G2013)$name
+
+from_type_G2013<- vtype_G2013[ edge_G2013$from ]
+to_type_G2013<- vtype_G2013[ edge_G2013$to   ]
+
+edge_G2013$pair_type <- ifelse(
+  from_type_G2013 == "mother-daughter" & to_type_G2013 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2013<- as.vector(net_G2013)
+sri_G2013 <- sri_G2013[sri_G2013 > 0]  # Remove zero values
+meansri_G2013<- mean(sri_G2013)
+
+
+hist(sri_G2013, breaks=30, main="Distribution of association index (SRI) for GB2 in 2013", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2013, col="blue", lwd=2)
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+####observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2013$from ]
+  to_pairid<- pairid[ edge_G2013$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2013$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2013<- mean_pair_association(g_G2013)
+```
+si marche pas c'est qu'il faut import edges dans la loop
+####permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2013<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2013
+  permuted_edge_list$pair_type <- sample(edge_G2013$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2013[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2013<-mean(perm_E_G2013 >= obs_value_G2013)
+
+cat("Mean of observed association =",obs_value_G2013,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2013),"\n")
+cat("P-value is",pvalue_e_G2013, "\t")
+if (pvalue_e_G2013< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2013, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.3,0.48))
+abline(v=obs_value_G2013, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mothjer-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+#### permutation
+```{r}
+original_pairid_G2013<- V(g_G2013)$pairID
+
+num_perm<- 5000
+perm_V_G2013<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2013, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2013
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2013[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2013 <- mean(perm_V_G2013 >= obs_value_G2013)
+cat("Mean of observed association =",obs_value_G2013,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2013),"\n")
+cat("P-value is",pvalue_v_G2013, "\t")
+if (pvalue_v_G2013 < 0.05) cat("significative") else
+  cat("not significative")
+```
+```{r}
+hist(perm_V_G2013, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.6))
+abline(v=obs_value_G2013, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+
+mean of association for mother-daughter pairs is already measured
+
+####permute
+```{r}
+network_perm_G2013<-network_permutation(association_data=GBI_G2013,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2013,identities=colnames(GBI_G2013),days= 1:nrow(GBI_G2013))
+
+```
+
+```{r}
+individuals_G2013<-colnames(GBI_G2013)
+dimnames(network_perm_G2013)[[2]] <- individuals_G2013
+dimnames(network_perm_G2013)[[3]] <- individuals_G2013
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2013 <- apply(network_perm_G2013, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2013)
+})
+
+pvalue_N_G2013<- mean(MD_perm_G2013 >= obs_value_G2013)
+
+cat("Mean of observed association =",obs_value_G2013,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2013),"\n")
+cat("P-value is",pvalue_N_G2013,"\t")
+if (pvalue_N_G2013 < 0.05) cat("significative") else
+  cat("not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2013, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.3,0.5))
+abline(v=mean(obs_value_G2013), col="red", lwd=3)
+```
+# GB2_2014 — (ﾉ\^_^)ﾉ—————————————
+
+```{r}
+GB2_2014<-read.csv("CSV_Dayroosts_GB2_2014_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+GB2_2014<-GB2_2014[c(0:40)] #filter columns
+GB2_2014<-GB2_2014[1:51,]
+GB2_2014 <- GB2_2014[, -4]
+GB2_2014 <- GB2_2014[, -3]
+GB2_2014 <- GB2_2014[, -2]
+colnames(GB2_2014)[colnames(GB2_2014) == "number"] <- "date"
+GB2_2014 <- GB2_2014[, !(colnames(GB2_2014) %in% c("E4D5", "B661"))]
+```
+
+```{r}
+data_G2014<- GB2_2014 %>%pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2014$daygroup<-as.factor(paste(data_G2014$date, data_G2014$box, sep="_"))
+
+ind_G2014<-data.table(ID=c(data_G2014$ID), group=data_G2014$daygroup, day=c(data_G2014$date)) #df with 3 col: ID, group and day 
+GBI_G2014<- get_group_by_individual(ind_G2014, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2014 <- as.matrix(GBI_G2014)
+```
+
+## network
+```{r}
+net_G2014<-get_network(GBI_G2014,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2014 <- graph_from_adjacency_matrix(net_G2014,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2014,vertex.label = V(g_G2014)$name,edge.width = E(g_G2014)$weight * 10, layout = layout_with_fr, vertex.color = "lightblue") 
+```
+#####plot + threshold
+```{r}
+threshold_G2014 <- mean(net_G2014, na.rm = TRUE) +  sd(net_G2014, na.rm = TRUE)
+
+gfilter_G2014<- delete_edges(g_G2014, E(g_G2014)[weight < threshold_G2014]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2014, edge.width = E(gfilter_G2014)$weight*6,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7)
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2014<-data.frame(mother=c("B587","4ECA","AA57","BF04","5672","377E"),daughter=c("879F", "29B2", "076C", "EE00", "22B0","E063"))
+mother_daughter_pairs_G2014$pairID<-c(1:nrow(mother_daughter_pairs_G2014))
+
+mother_ids_G2014<- mother_daughter_pairs_G2014$mother
+daughter_ids_G2014<- mother_daughter_pairs_G2014$daughter
+
+V(g_G2014)$type <- "other"  # default value
+V(g_G2014)[V(g_G2014)$name %in% mother_ids_G2014]$type   <- "mother-daughter"
+V(g_G2014)[V(g_G2014)$name %in% daughter_ids_G2014]$type <- "mother-daughter"
+
+plot(gfilter_G2014, edge.width = E(g_G2014)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2014)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2014)$name)
+```
+```{r}
+md_lookup_G2014<- mother_daughter_pairs_G2014%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2014<- match(V(g_G2014)$name, md_lookup_G2014$ID)   # returns NA if the name is not found
+V(g_G2014)$pairID <- md_lookup_G2014$pairID[IDs_G2014] 
+
+pair_IDs_G2014<- factor(V(g_G2014)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2014<-length(levels(na.omit(pair_IDs_G2014)))
+my_palette_G2014<-brewer.pal(n = max(3,n_pairs_G2014), name = "Set2") 
+
+# Map each vertex to the correct color
+pair_colors_G2014<- my_palette_G2014[pair_IDs_G2014]
+pair_colors_G2014[is.na(pair_colors_G2014)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2014, edge.width = E(gfilter_G2014)$weight*6,edge.curved=F,vertex.color =pair_colors_G2014, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2014 <- levels(na.omit(pair_IDs_G2014))
+legend_colors_G2014 <- my_palette_G2014[seq_along(pair_levels_G2014)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2014), "random pair"),
+  col    = c(legend_colors_G2014, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2014 <-  igraph::as_data_frame(g_G2014, what="edges")
+
+vtype_G2014<- V(g_G2014)$type
+names(vtype_G2014) <- V(g_G2014)$name
+
+from_type_G2014<- vtype_G2014[ edge_G2014$from ]
+to_type_G2014<- vtype_G2014[ edge_G2014$to   ]
+
+edge_G2014$pair_type <- ifelse(
+  from_type_G2014 == "mother-daughter" & to_type_G2014 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2014<- as.vector(net_G2014)
+sri_G2014 <- sri_G2014[sri_G2014 > 0]  # Remove zero values
+meansri_G2014<- mean(sri_G2014)
+
+
+hist(sri_G2014, breaks=30, main="Distribution of association index (SRI) for GB2 in 2014", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2014, col="blue", lwd=2)
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+####observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2014$from ]
+  to_pairid<- pairid[ edge_G2014$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2014$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2014<- mean_pair_association(g_G2014)
+```
+si marche pas c'est qu'il faut import edges dans la loop
+####permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2014<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2014
+  permuted_edge_list$pair_type <- sample(edge_G2014$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2014[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2014<-mean(perm_E_G2014 >= obs_value_G2014)
+
+cat("Mean of observed association =",obs_value_G2014,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2014),"\n")
+cat("P-value is",pvalue_e_G2014, "\t")
+if (pvalue_e_G2014< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2014, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.3,0.48))
+abline(v=obs_value_G2014, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mothjer-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+#### permutation
+```{r}
+original_pairid_G2014<- V(g_G2014)$pairID
+
+num_perm<- 5000
+perm_V_G2014<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2014, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2014
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2014[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2014<- mean(perm_V_G2014 >= obs_value_G2014)
+cat("Mean of observed association =",obs_value_G2014,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2014),"\n")
+cat("P-value is",pvalue_v_G2014, "\t")
+if (pvalue_v_G2014 < 0.05) cat("significative") else
+  cat("not significative")
+```
+
+```{r}
+hist(perm_V_G2014, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.6))
+abline(v=obs_value_G2014, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+####permute
+```{r}
+network_perm_G2014<-network_permutation(association_data=GBI_G2014,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2014,identities=colnames(GBI_G2014),days= 1:nrow(GBI_G2014))
+
+```
+
+```{r}
+individuals_G2014<-colnames(GBI_G2014)
+dimnames(network_perm_G2014)[[2]] <- individuals_G2014
+dimnames(network_perm_G2014)[[3]] <- individuals_G2014
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2014<-apply(network_perm_G2014, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2014)
+})
+
+pvalue_N_G2014<- mean(MD_perm_G2014>= obs_value_G2014)
+
+cat("Mean of observed association =",obs_value_G2014,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2014),"\n")
+cat("P-value is",pvalue_N_G2014,"\t")
+if (pvalue_N_G2014 < 0.05) cat("significative") else
+  cat("not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2014, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.3,0.5))
+abline(v=mean(obs_value_G2014), col="red", lwd=3)
+```
+# GB2 2015 (◡‿◡✿)-----------------------
+
+```{r}
+GB2_2015<-read.csv("Dayroosts_GB2_2015_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2015<-GB2_2015[c(0:38)] #filter columns
+GB2_2015<-GB2_2015[1:45,]
+
+colnames(GB2_2015)[colnames(GB2_2015) == "number"] <- "date"
+
+#remove one individual
+GB2_2015<- GB2_2015[, !(colnames(GB2_2015) %in% "3D98")]
+```
+
+```{r}
+data_G2015<- GB2_2015 %>%pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2015$daygroup<-as.factor(paste(data_G2015$date, data_G2015$box, sep="_"))
+
+ind_G2015<-data.table(ID=c(data_G2015$ID), group=data_G2015$daygroup, day=c(data_G2015$date)) #df with 3 col: ID, group and day 
+GBI_G2015<- get_group_by_individual(ind_G2015, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2015<- as.matrix(GBI_G2015)
+```
+
+## network
+```{r}
+net_G2015<-get_network(GBI_G2015,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2015<- graph_from_adjacency_matrix(net_G2015,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2015,vertex.label = V(g_G2015)$name,edge.width = E(g_G2015)$weight * 10, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2015<- mean(net_G2015, na.rm = TRUE) +  sd(net_G2015, na.rm = TRUE)
+
+gfilter_G2015<- delete_edges(g_G2015, E(g_G2015)[weight < threshold_G2015]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2015, edge.width = E(gfilter_G2015)$weight*6,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2015<-data.frame(mother=c("B75C","3F49","1731"),daughter=c("663E", "EC1A", "256A"))
+mother_daughter_pairs_G2015$pairID<-c(1:nrow(mother_daughter_pairs_G2015))
+
+mother_ids_G2015<- mother_daughter_pairs_G2015$mother
+daughter_ids_G2015<- mother_daughter_pairs_G2015$daughter
+
+V(g_G2015)$type <- "other"  # default value
+V(g_G2015)[V(g_G2015)$name %in% mother_ids_G2015]$type   <- "mother-daughter"
+V(g_G2015)[V(g_G2015)$name %in% daughter_ids_G2015]$type <- "mother-daughter"
+
+plot(gfilter_G2015, edge.width = E(gfilter_G2015)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2015)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2015)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2015<- mother_daughter_pairs_G2015%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2015<- match(V(g_G2015)$name, md_lookup_G2015$ID)   # returns NA if the name is not found
+V(g_G2015)$pairID <- md_lookup_G2015$pairID[IDs_G2015] 
+
+pair_IDs_G2015<- factor(V(g_G2015)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2015<-length(levels(na.omit(pair_IDs_G2015)))
+my_palette_G2015<-brewer.pal(n = max(3,n_pairs_G2015), name = "Set2") 
+
+# Map each vertex to the correct color
+pair_colors_G2015<- my_palette_G2015[pair_IDs_G2015]
+pair_colors_G2015[is.na(pair_colors_G2015)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2015, edge.width = E(gfilter_G2015)$weight*6,edge.curved=F,vertex.color =pair_colors_G2015, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2015<- levels(na.omit(pair_IDs_G2015))
+legend_colors_G2015 <- my_palette_G2015[seq_along(pair_levels_G2015)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2015), "random pair"),
+  col    = c(legend_colors_G2015, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2015<-  igraph::as_data_frame(g_G2015, what="edges")
+
+vtype_G2015<- V(g_G2015)$type
+names(vtype_G2015) <- V(g_G2015)$name
+
+from_type_G2015<- vtype_G2015[ edge_G2015$from ]
+to_type_G2015<- vtype_G2015[ edge_G2015$to   ]
+
+edge_G2015$pair_type <- ifelse(
+  from_type_G2015== "mother-daughter" & to_type_G2015 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2015<- as.vector(net_G2015)
+sri_G2015 <- sri_G2015[sri_G2015 > 0]  # Remove zero values
+meansri_G2015<- mean(sri_G2015)
+
+
+hist(sri_G2015, breaks=30, main="Distribution of association index (SRI) for GB2 in 2015", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2015, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+sri_md_G2015<- edge_G2015$weight[edge_G2015$pair_type == "mother-daughter" ]
+
+
+hist_all_G2015<-hist(net_G2015, breaks = 30, plot = FALSE)
+hist_md_G2015<- hist(sri_md_G2015, breaks = 30, plot = FALSE)
+
+plot(hist_all_G2015, col = "lightblue", border = "black",
+     main = "Distribution of Association Index (SRI) for GB2 in 2015",
+     xlab = "Association index (SRI)", ylab = "Frequency", xlim = c(0,1))
+plot(hist_md_G2015, col = adjustcolor("plum4", alpha.f = 0.5), border = "plum4", add = TRUE)
+
+abline(v = mean(sri_G2015), col = "blue", lwd = 2)
+abline(v = mean(sri_md_G2015), col = "plum4", lwd = 2, lty = 2)
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2015$from ]
+  to_pairid<- pairid[ edge_G2015$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2015$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2015<- mean_pair_association(g_G2015)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2015<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2015
+  permuted_edge_list$pair_type <- sample(edge_G2015$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2015[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2015<-mean(perm_E_G2015>= obs_value_G2015)
+
+cat("Mean of observed association =",obs_value_G2015,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2015),"\n")
+cat("P-value is",pvalue_e_G2015, "\t")
+if (pvalue_e_G2015< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2015, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.05,0.35))
+abline(v=obs_value_G2015, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mothjer-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+
+```{r}
+original_pairid_G2015<- V(g_G2015)$pairID
+
+num_perm<- 5000
+perm_V_G2015<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2015, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2015
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2015[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2015<- mean(perm_V_G2015 >= obs_value_G2015)
+cat("Mean of observed association =",obs_value_G2015,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2015),"\n")
+cat("P-value is",pvalue_v_G2015, "\t")
+if (pvalue_v_G2015< 0.05) cat("significative") else
+  cat("not significative")
+```
+
+```{r}
+hist(perm_V_G2015, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.6))
+abline(v=obs_value_G2015, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+```{r}
+network_perm_G2015<-network_permutation(association_data=GBI_G2015,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2015,identities=colnames(GBI_G2015),days= 1:nrow(GBI_G2015))
+
+```
+
+```{r}
+individuals_G2015<-colnames(GBI_G2015)
+dimnames(network_perm_G2015)[[2]] <- individuals_G2015
+dimnames(network_perm_G2015)[[3]] <- individuals_G2015
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2015<-apply(network_perm_G2015, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2015)
+})
+
+pvalue_N_G2015<- mean(MD_perm_G2015>= obs_value_G2015)
+
+cat("Mean of observed association =",obs_value_G2015,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2015),"\n")
+cat("P-value is",pvalue_N_G2015,"\t")
+if (pvalue_N_G2015 < 0.05) cat("significative") else
+  cat("not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2015, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.1,0.32))
+abline(v=mean(obs_value_G2015), col="red", lwd=3)
+```
+
+
+# GB2 -2016 ———————————————–
+
+Only 1 pair of mother-daughter... 3 juveniles were born but not recorded?
+
+```{r}
+GB2_2016<-read.csv("CSV_Dayroosts_GB2_2016_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2016<-GB2_2016[c(0:25)] #filter columns
+
+```
+
+```{r}
+data_G2016<- GB2_2016%>%pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2016$daygroup<-as.factor(paste(data_G2016$date, data_G2016$box, sep="_"))
+
+ind_G2016<-data.table(ID=c(data_G2016$ID), group=data_G2016$daygroup, day=c(data_G2016$date)) #df with 3 col: ID, group and day 
+GBI_G2016<- get_group_by_individual(ind_G2016, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2016<- as.matrix(GBI_G2016)
+```
+
+## network
+```{r}
+net_G2016<-get_network(GBI_G2016,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2016<- graph_from_adjacency_matrix(net_G2016,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2016,vertex.label = V(g_G2016)$name,edge.width = E(g_G2016)$weight * 6, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2016<- mean(net_G2016, na.rm = TRUE) +  sd(net_G2016, na.rm = TRUE)
+
+gfilter_G2016<- delete_edges(g_G2016, E(g_G2016)[weight < threshold_G2016]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2016, edge.width = E(gfilter_G2016)$weight*6,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2016<-data.frame(mother=c("29B2"),daughter=c("0758"))
+mother_daughter_pairs_G2016$pairID<-c(1:nrow(mother_daughter_pairs_G2016))
+
+mother_ids_G2016<- mother_daughter_pairs_G2016$mother
+daughter_ids_G2016<- mother_daughter_pairs_G2016$daughter
+
+V(g_G2016)$type <- "other"  # default value
+V(g_G2016)[V(g_G2016)$name %in% mother_ids_G2016]$type   <- "mother-daughter"
+V(g_G2016)[V(g_G2016)$name %in% daughter_ids_G2016]$type <- "mother-daughter"
+
+plot(gfilter_G2016, edge.width = E(gfilter_G2016)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2016)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2016)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2016<- mother_daughter_pairs_G2016%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2016<- match(V(g_G2016)$name, md_lookup_G2016$ID)   # returns NA if the name is not found
+V(g_G2016)$pairID <- md_lookup_G2016$pairID[IDs_G2016] 
+
+pair_IDs_G2016<- factor(V(g_G2016)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2016<-length(levels(na.omit(pair_IDs_G2016)))
+my_palette_G2016<-brewer.pal(n = max(3,n_pairs_G2016), name = "Set2") 
+
+# Map each vertex to the correct color
+pair_colors_G2016<- my_palette_G2016[pair_IDs_G2016]
+pair_colors_G2016[is.na(pair_colors_G2016)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2016, edge.width = E(gfilter_G2016)$weight*6,edge.curved=F,vertex.color =pair_colors_G2016, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2016<- levels(na.omit(pair_IDs_G2016))
+legend_colors_G2016 <- my_palette_G2016[seq_along(pair_levels_G2016)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2016), "random pair"),
+  col    = c(legend_colors_G2016, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2016<-  igraph::as_data_frame(g_G2016, what="edges")
+
+vtype_G2016<- V(g_G2016)$type
+names(vtype_G2016) <- V(g_G2016)$name
+
+from_type_G2016<- vtype_G2016[ edge_G2016$from ]
+to_type_G2016<- vtype_G2016[ edge_G2016$to   ]
+
+edge_G2016$pair_type <- ifelse(
+  from_type_G2016== "mother-daughter" & to_type_G2016 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2016<- as.vector(net_G2016)
+sri_G2016<- sri_G2016[sri_G2016 > 0]  # Remove zero values
+meansri_G2016<- mean(sri_G2016)
+
+
+hist(sri_G2016, breaks=30, main="Distribution of association index (SRI) for GB2 in 2016", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2016, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2016$from ]
+  to_pairid<- pairid[ edge_G2016$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2016$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2016<- mean_pair_association(g_G2016)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2016<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2016
+  permuted_edge_list$pair_type <- sample(edge_G2016$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2016[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2016<-mean(perm_E_G2016>= obs_value_G2016)
+
+cat("Mean of observed association =",obs_value_G2016,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2016),"\n")
+cat("P-value is",pvalue_e_G2016, "\t")
+if (pvalue_e_G2016< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2016, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.9))
+abline(v=obs_value_G2016, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mothjer-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+permutation
+```{r}
+original_pairid_G2016<- V(g_G2016)$pairID
+
+num_perm<- 5000
+perm_V_G2016<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2016, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2016
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2016[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2016<- mean(perm_V_G2016>= obs_value_G2016)
+cat("Mean of observed association =",obs_value_G2016,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2016),"\n")
+cat("P-value is",pvalue_v_G2016, "\t")
+if (pvalue_v_G2016< 0.05) cat("significative") else
+  cat("not significative")
+```
+
+```{r}
+hist(perm_V_G2016, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.9))
+abline(v=obs_value_G2016, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+permute
+```{r}
+network_perm_G2016<-network_permutation(association_data=GBI_G2016,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2016,identities=colnames(GBI_G2016),days= 1:nrow(GBI_G2016))
+
+```
+
+```{r}
+individuals_G2016<-colnames(GBI_G2016)
+dimnames(network_perm_G2016)[[2]] <- individuals_G2016
+dimnames(network_perm_G2016)[[3]] <- individuals_G2016
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2016<-apply(network_perm_G2016, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2016)
+})
+
+pvalue_N_G2016<- mean(MD_perm_G2016>= obs_value_G2016)
+
+cat("Mean of observed association =",obs_value_G2016,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2016),"\n")
+cat("P-value is",pvalue_N_G2016,"\t")
+if (pvalue_N_G2016 < 0.05) cat("significative") else
+  cat("not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2016, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.1,0.9))
+abline(v=mean(obs_value_G2016), col="red", lwd=3)
+```
+# GB2 2017 ---------------------
+
+```{r}
+GB2_2017<-read.csv("CSV_Dayroosts_GB2_2017_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2017<-GB2_2017[c(0:36)] #filter columns
+GB2_2017<-GB2_2017[1:42,]
+
+```
+
+```{r}
+data_G2017<- GB2_2017%>%pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2017$daygroup<-as.factor(paste(data_G2017$date, data_G2017$box, sep="_"))
+
+ind_G2017<-data.table(ID=c(data_G2017$ID), group=data_G2017$daygroup, day=c(data_G2017$date)) #df with 3 col: ID, group and day 
+GBI_G2017<- get_group_by_individual(ind_G2017, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2017<- as.matrix(GBI_G2017)
+```
+
+## network
+```{r}
+net_G2017<-get_network(GBI_G2017,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2017<- graph_from_adjacency_matrix(net_G2017,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2017,vertex.label = V(g_G2017)$name,edge.width = E(g_G2017)$weight * 6, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2017<- mean(net_G2017, na.rm = TRUE) +  sd(net_G2017, na.rm = TRUE)
+
+gfilter_G2017<- delete_edges(g_G2017, E(g_G2017)[weight < mean(net_G2017, na.rm = TRUE)]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2017, edge.width = E(gfilter_G2017)$weight*5,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2017<-data.frame(mother=c("41C1","879F","29B2","663E","256A","0758","377E","24E9","4FE4","F377"),daughter=c("9FB7","2F8D","D629","A539","DE72","C5F2","DCCF","44BD","F44A","ACF4"))
+mother_daughter_pairs_G2017$pairID<-c(1:nrow(mother_daughter_pairs_G2017))
+
+mother_ids_G2017<- mother_daughter_pairs_G2017$mother
+daughter_ids_G2017<- mother_daughter_pairs_G2017$daughter
+
+V(g_G2017)$type <- "other"  # default value
+V(g_G2017)[V(g_G2017)$name %in% mother_ids_G2017]$type   <- "mother-daughter"
+V(g_G2017)[V(g_G2017)$name %in% daughter_ids_G2017]$type <- "mother-daughter"
+
+plot(gfilter_G2017, edge.width = E(gfilter_G2017)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2017)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2017)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2017<- mother_daughter_pairs_G2017%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2017<- match(V(g_G2017)$name, md_lookup_G2017$ID)   # returns NA if the name is not found
+V(g_G2017)$pairID <- md_lookup_G2017$pairID[IDs_G2017] 
+
+pair_IDs_G2017<- factor(V(g_G2017)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2017<-length(levels(na.omit(pair_IDs_G2017)))
+my_palette_G2017<-brewer.pal(n = max(3,n_pairs_G2017), name = "Paired") 
+
+# Map each vertex to the correct color
+pair_colors_G2017<- my_palette_G2017[pair_IDs_G2017]
+pair_colors_G2017[is.na(pair_colors_G2017)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2017, edge.width = E(gfilter_G2017)$weight*6,edge.curved=F,vertex.color =pair_colors_G2017, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2017<- levels(na.omit(pair_IDs_G2017))
+legend_colors_G2017 <- my_palette_G2017[seq_along(pair_levels_G2017)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2017), "random pair"),
+  col    = c(legend_colors_G2017, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2017<-  igraph::as_data_frame(g_G2017, what="edges")
+
+vtype_G2017<- V(g_G2017)$type
+names(vtype_G2017) <- V(g_G2017)$name
+
+from_type_G2017<-vtype_G2017[ edge_G2017$from ]
+to_type_G2017<-vtype_G2017[ edge_G2017$to   ]
+
+edge_G2017$pair_type <- ifelse(
+  from_type_G2017== "mother-daughter" & to_type_G2017 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2017<- as.vector(net_G2017)
+sri_G2017 <- sri_G2017[sri_G2017 > 0]  # Remove zero values
+meansri_G2017<- mean(sri_G2017)
+
+
+hist(sri_G2017, breaks=30, main="Distribution of association index (SRI) for GB2 in 2017", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2017, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+sri_md_G2017<- edge_G2017$weight[edge_G2017$pair_type == "mother-daughter" ]
+
+
+hist_all_G2017<-hist(net_G2017, breaks = 30, plot = FALSE)
+hist_md_G2017<- hist(sri_md_G2017, breaks = 30, plot = FALSE)
+
+plot(hist_all_G2017, col = "lightblue", border = "black",
+     main = "Distribution of Association Index (SRI) for GB2 in 2017",
+     xlab = "Association index (SRI)", ylab = "Frequency", xlim = c(0,1))
+plot(hist_md_G2017, col = adjustcolor("plum4", alpha.f = 0.5), border = "plum4", add = TRUE)
+
+abline(v = mean(sri_G2017), col = "blue", lwd = 2)
+abline(v = mean(sri_md_G2017), col = "plum4", lwd = 2, lty = 2)
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2017$from ]
+  to_pairid<- pairid[ edge_G2017$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2017$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2017<- mean_pair_association(g_G2017)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2017<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2017
+  permuted_edge_list$pair_type <- sample(edge_G2017$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2017[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2017<-mean(perm_E_G2017>= obs_value_G2017)
+
+cat("Mean of observed association =",obs_value_G2017,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2017),"\n")
+cat("P-value is",pvalue_e_G2017, "\t")
+if (pvalue_e_G2017< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2017, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.35,0.48))
+abline(v=obs_value_G2017, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mothjer-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+permutation
+```{r}
+original_pairid_G2017<- V(g_G2017)$pairID
+
+num_perm<- 5000
+perm_V_G2017<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2017, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2017
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2017[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2017<- mean(perm_V_G2017 >= obs_value_G2017)
+cat("Mean of observed association =",obs_value_G2017,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2017),"\n")
+cat("P-value is",pvalue_v_G2017, "\t")
+if (pvalue_v_G2017< 0.05) cat("significative") else
+  cat("not significative")
+```
+
+```{r}
+hist(perm_V_G2017, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.6))
+abline(v=obs_value_G2017, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+permute
+```{r}
+network_perm_G2017<-network_permutation(association_data=GBI_G2017,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2017,identities=colnames(GBI_G2017),days= 1:nrow(GBI_G2017))
+
+```
+
+```{r}
+individuals_G2017<-colnames(GBI_G2017)
+dimnames(network_perm_G2017)[[2]] <- individuals_G2017
+dimnames(network_perm_G2017)[[3]] <- individuals_G2017
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2017<-apply(network_perm_G2017, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2017)
+})
+
+pvalue_N_G2017<- mean(MD_perm_G2017>= obs_value_G2017)
+
+cat("Mean of observed association =",obs_value_G2017,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2017),"\n")
+cat("P-value is",pvalue_N_G2017,"\t")
+if (pvalue_N_G2017 < 0.05) cat("significative") else
+  cat("not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2017, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.35,0.5))
+abline(v=mean(obs_value_G2017), col="red", lwd=3)
+```
+
+# GB2 2018 ---------------------
+not a lot of data
+
+```{r}
+GB2_2018<-read.csv("CSV_Dayroosts_GB2_2018_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2018<-GB2_2018[c(1:39)] #filter columns
+GB2_2018<-GB2_2018[1:17,]
+
+GB2_2018<- GB2_2018[, !(colnames(GB2_2018) %in% "F44A")]
+```
+
+```{r}
+data_G2018<- GB2_2018%>%pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2018$daygroup<-as.factor(paste(data_G2018$date, data_G2018$box, sep="_"))
+
+ind_G2018<-data.table(ID=c(data_G2018$ID), group=data_G2018$daygroup, day=c(data_G2018$date)) #df with 3 col: ID, group and day 
+GBI_G2018<- get_group_by_individual(ind_G2018, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2018<- as.matrix(GBI_G2018)
+```
+
+## network
+```{r}
+net_G2018<-get_network(GBI_G2018,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2018<- graph_from_adjacency_matrix(net_G2018,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2018,vertex.label = V(g_G2018)$name,edge.width = E(g_G2018)$weight * 6, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2018<- mean(net_G2018, na.rm = TRUE) +  sd(net_G2018, na.rm = TRUE)
+
+gfilter_G2018<- delete_edges(g_G2018, E(g_G2018)[weight < threshold_G2018]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2018, edge.width = E(gfilter_G2018)$weight*5,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2018<-data.frame(mother=c("39ED","AC35","377E","7C6F"),daughter=c("80F1","AA3C","5939","CB2B"))
+mother_daughter_pairs_G2018$pairID<-c(1:nrow(mother_daughter_pairs_G2018))
+
+mother_ids_G2018<- mother_daughter_pairs_G2018$mother
+daughter_ids_G2018<- mother_daughter_pairs_G2018$daughter
+
+V(g_G2018)$type <- "other"  # default value
+V(g_G2018)[V(g_G2018)$name %in% mother_ids_G2018]$type   <- "mother-daughter"
+V(g_G2018)[V(g_G2018)$name %in% daughter_ids_G2018]$type <- "mother-daughter"
+
+plot(gfilter_G2018, edge.width = E(gfilter_G2018)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2018)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2018)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2018<- mother_daughter_pairs_G2018%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2018<- match(V(g_G2018)$name, md_lookup_G2018$ID)   # returns NA if the name is not found
+V(g_G2018)$pairID <- md_lookup_G2018$pairID[IDs_G2018] 
+
+pair_IDs_G2018<- factor(V(g_G2018)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2018<-length(levels(na.omit(pair_IDs_G2018)))
+my_palette_G2018<-brewer.pal(n = max(3,n_pairs_G2018), name = "Paired") 
+
+# Map each vertex to the correct color
+pair_colors_G2018<- my_palette_G2018[pair_IDs_G2018]
+pair_colors_G2018[is.na(pair_colors_G2018)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2018, edge.width = E(gfilter_G2018)$weight*6,edge.curved=F,vertex.color =pair_colors_G2018, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2018<- levels(na.omit(pair_IDs_G2018))
+legend_colors_G2018 <- my_palette_G2018[seq_along(pair_levels_G2018)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2018), "random pair"),
+  col    = c(legend_colors_G2018, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2018<-  igraph::as_data_frame(g_G2018, what="edges")
+
+vtype_G2018<- V(g_G2018)$type
+names(vtype_G2018) <- V(g_G2018)$name
+
+from_type_G2018<-vtype_G2018[ edge_G2018$from ]
+to_type_G2018<-vtype_G2018[ edge_G2018$to   ]
+
+edge_G2018$pair_type <- ifelse(
+  from_type_G2018== "mother-daughter" & to_type_G2018 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2018<- as.vector(net_G2018)
+sri_G2018 <- sri_G2018[sri_G2018 > 0]  # Remove zero values
+meansri_G2018<- mean(sri_G2018)
+
+
+hist(sri_G2018, breaks=30, main="Distribution of association index (SRI) for GB2 in 2018", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2018, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2018$from ]
+  to_pairid<- pairid[ edge_G2018$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2018$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2018<- mean_pair_association(g_G2018)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2018<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2018
+  permuted_edge_list$pair_type <- sample(edge_G2018$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2018[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2018<-mean(perm_E_G2018>= obs_value_G2018)
+
+cat("Mean of observed association =",obs_value_G2018,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2018),"\n")
+cat("P-value is",pvalue_e_G2018, "\t")
+if (pvalue_e_G2018< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2018, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.48))
+abline(v=obs_value_G2018, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mother-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+permutation
+```{r}
+original_pairid_G2018<- V(g_G2018)$pairID
+
+num_perm<- 5000
+perm_V_G2018<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2018, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2018
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2018[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2018<- mean(perm_V_G2018 >= obs_value_G2018)
+cat("Mean of observed association =",obs_value_G2018,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2018),"\n")
+cat("P-value is",pvalue_v_G2018, "\t")
+if (pvalue_v_G2018< 0.05) cat("significative") else
+  cat("not significative")
+```
+
+```{r}
+hist(perm_V_G2018, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.6))
+abline(v=obs_value_G2018, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+permute
+```{r}
+network_perm_G2018<-network_permutation(association_data=GBI_G2018,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2018,identities=colnames(GBI_G2018),days= 1:nrow(GBI_G2018))
+
+```
+
+```{r}
+individuals_G2018<-colnames(GBI_G2018)
+dimnames(network_perm_G2018)[[2]] <- individuals_G2018
+dimnames(network_perm_G2018)[[3]] <- individuals_G2018
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2018<-apply(network_perm_G2018, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2018)
+})
+
+pvalue_N_G2018<- mean(MD_perm_G2018>= obs_value_G2018)
+
+cat("Mean of observed association =",obs_value_G2018,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2018),"\n")
+cat("P-value is",pvalue_N_G2018,"\t")
+if (pvalue_N_G2018 < 0.05) cat("significative") else
+  cat("not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2018, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.5))
+abline(v=mean(obs_value_G2018), col="red", lwd=3)
+```
+
+# GB2 2019 ---------------------
+
+```{r}
+GB2_2019<-read.csv("CSV_Dayroosts_GB2_2019_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2019<-GB2_2019[c(1:41)] #filter columns
+
+
+GB2_2018<- GB2_2018[, !(colnames(GB2_2018) %in% "F44A")]
+```
+
+```{r}
+colnames(GB2_2019)<-as.character(colnames(GB2_2019))
+data_G2019<- GB2_2019 %>%
+  mutate(across(-date, as.character)) %>%
+  pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2019$daygroup<-as.factor(paste(data_G2019$date, data_G2019$box, sep="_"))
+
+ind_G2019<-data.table(ID=c(data_G2019$ID), group=data_G2019$daygroup, day=c(data_G2019$date)) #df with 3 col: ID, group and day 
+GBI_G2019<- get_group_by_individual(ind_G2019, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2019<- as.matrix(GBI_G2019)
+```
+
+## network
+```{r}
+net_G2019<-get_network(GBI_G2019,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2019<- graph_from_adjacency_matrix(net_G2019,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2019,vertex.label = V(g_G2019)$name,edge.width = E(g_G2019)$weight * 6, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2019<- mean(net_G2019, na.rm = TRUE) +  sd(net_G2019, na.rm = TRUE)
+
+gfilter_G2019<- delete_edges(g_G2019, E(g_G2019)[weight <threshold_G2019]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2019, edge.width = E(gfilter_G2019)$weight*5,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2019<-data.frame(mother=c("41C1","F44A","377E"),daughter=c("A24D","2D31","B8A2"))
+mother_daughter_pairs_G2019$pairID<-c(1:nrow(mother_daughter_pairs_G2019))
+
+mother_ids_G2019<- mother_daughter_pairs_G2019$mother
+daughter_ids_G2019<- mother_daughter_pairs_G2019$daughter
+
+V(g_G2019)$type <- "other"  # default value
+V(g_G2019)[V(g_G2019)$name %in% mother_ids_G2019]$type   <- "mother-daughter"
+V(g_G2019)[V(g_G2019)$name %in% daughter_ids_G2019]$type <- "mother-daughter"
+
+plot(gfilter_G2019, edge.width = E(gfilter_G2019)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2019)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2019)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2019<- mother_daughter_pairs_G2019%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2019<- match(V(g_G2019)$name, md_lookup_G2019$ID)   # returns NA if the name is not found
+V(g_G2019)$pairID <- md_lookup_G2019$pairID[IDs_G2019] 
+
+pair_IDs_G2019<- factor(V(g_G2019)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2019<-length(levels(na.omit(pair_IDs_G2019)))
+my_palette_G2019<-brewer.pal(n = max(3,n_pairs_G2019), name = "Paired") 
+
+# Map each vertex to the correct color
+pair_colors_G2019<- my_palette_G2019[pair_IDs_G2019]
+pair_colors_G2019[is.na(pair_colors_G2019)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2019, edge.width = E(gfilter_G2019)$weight*6,edge.curved=F,vertex.color =pair_colors_G2019, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2019<- levels(na.omit(pair_IDs_G2019))
+legend_colors_G2019 <- my_palette_G2019[seq_along(pair_levels_G2019)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2019), "random pair"),
+  col    = c(legend_colors_G2019, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2019<-  igraph::as_data_frame(g_G2019, what="edges")
+
+vtype_G2019<- V(g_G2019)$type
+names(vtype_G2019) <- V(g_G2019)$name
+
+from_type_G2019<-vtype_G2019[ edge_G2019$from ]
+to_type_G2019<-vtype_G2019[ edge_G2019$to   ]
+
+edge_G2019$pair_type <- ifelse(
+  from_type_G2019== "mother-daughter" & to_type_G2019 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2019<- as.vector(net_G2019)
+sri_G2019 <- sri_G2019[sri_G2019 > 0]  # Remove zero values
+meansri_G2019<- mean(sri_G2019)
+
+
+hist(sri_G2019, breaks=30, main="Distribution of association index (SRI) for GB2 in 2019", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2019, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2019$from ]
+  to_pairid<- pairid[ edge_G2019$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2019$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2019<- mean_pair_association(g_G2019)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2019<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2019
+  permuted_edge_list$pair_type <- sample(edge_G2019$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2019[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2019<-mean(perm_E_G2019>= obs_value_G2019)
+
+cat("Mean of observed association =",obs_value_G2019,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2019),"\n")
+cat("P-value is",pvalue_e_G2019, "\t")
+if (pvalue_e_G2019< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2019, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.7))
+abline(v=obs_value_G2019, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mother-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+permutation
+```{r}
+original_pairid_G2019<- V(g_G2019)$pairID
+
+num_perm<- 5000
+perm_V_G2019<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2019, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2019
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2019[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2019<- mean(perm_V_G2019>= obs_value_G2019)
+cat("Mean of observed association =",obs_value_G2019,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2019),"\n")
+cat("P-value is",pvalue_v_G2019, "\t")
+if (pvalue_v_G2019< 0.05) cat("significative") else
+  cat("not significative")
+```
+
+```{r}
+hist(perm_V_G2019, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.8))
+abline(v=obs_value_G2019, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+permute
+```{r}
+network_perm_G2019<-network_permutation(association_data=GBI_G2019,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2019,identities=colnames(GBI_G2019),days= 1:nrow(GBI_G2019))
+
+```
+
+```{r}
+individuals_G2019<-colnames(GBI_G2019)
+dimnames(network_perm_G2019)[[2]] <- individuals_G2019
+dimnames(network_perm_G2019)[[3]] <- individuals_G2019
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2019<-apply(network_perm_G2019, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2019)
+})
+
+pvalue_N_G2019<- mean(MD_perm_G2019>= obs_value_G2019)
+
+cat("Mean of observed association =",obs_value_G2019,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2019),"\n")
+cat("P-value is",pvalue_N_G2019,"\t")
+if (pvalue_N_G2019 < 0.05) cat("significative") else
+  cat("not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2019, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.3,0.7))
+abline(v=mean(obs_value_G2019), col="red", lwd=3)
+```
+# GB2 2020 ---------------------
+
+```{r}
+GB2_2020<-read.csv("CSV_Dayroosts_GB2_2020_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2020<-GB2_2020[c(1:51)] #filter columns
+GB2_2020<-GB2_2020[1:27,]
+
+GB2_2020 <- GB2_2020 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+```
+
+```{r}
+colnames(GB2_2020)<-as.character(colnames(GB2_2020))
+data_G2020<- GB2_2020 %>%
+  mutate(across(-date, as.character)) %>%
+  pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2020$daygroup<-as.factor(paste(data_G2020$date, data_G2020$box, sep="_"))
+
+ind_G2020<-data.table(ID=c(data_G2020$ID), group=data_G2020$daygroup, day=c(data_G2020$date)) #df with 3 col: ID, group and day 
+GBI_G2020<- get_group_by_individual(ind_G2020, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2020<- as.matrix(GBI_G2020)
+```
+
+## network
+```{r}
+net_G2020<-get_network(GBI_G2020,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2020<- graph_from_adjacency_matrix(net_G2020,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2020,vertex.label = V(g_G2020)$name,edge.width = E(g_G2020)$weight * 6, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2020<- mean(net_G2020, na.rm = TRUE) +  sd(net_G2020, na.rm = TRUE)
+
+gfilter_G2020<- delete_edges(g_G2020, E(g_G2020)[weight <threshold_G2020]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2020, edge.width = E(gfilter_G2020)$weight*5,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2020<-data.frame(mother=c("4ECA","41C1","BF04","879F","EC1A","663E","DCCF","80F1","CB2B","1731","4FE4"),daughter=c("C809","B5D9","D9EF","AC37","82C7",
+"0387","3CC1","9A5D","8787","D4DC","418B"))
+
+mother_daughter_pairs_G2020$pairID<-c(1:nrow(mother_daughter_pairs_G2020))
+
+mother_ids_G2020<- mother_daughter_pairs_G2020$mother
+daughter_ids_G2020<- mother_daughter_pairs_G2020$daughter
+
+V(g_G2020)$type <- "other"  # default value
+V(g_G2020)[V(g_G2020)$name %in% mother_ids_G2020]$type   <- "mother-daughter"
+V(g_G2020)[V(g_G2020)$name %in% daughter_ids_G2020]$type <- "mother-daughter"
+
+plot(gfilter_G2020, edge.width = E(gfilter_G2020)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2020)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2020)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2020<- mother_daughter_pairs_G2020%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2020<- match(V(g_G2020)$name, md_lookup_G2020$ID)   # returns NA if the name is not found
+V(g_G2020)$pairID <- md_lookup_G2020$pairID[IDs_G2020] 
+
+pair_IDs_G2020<- factor(V(g_G2020)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2020<-length(levels(na.omit(pair_IDs_G2020)))
+my_palette_G2020<-brewer.pal(n = max(3,n_pairs_G2020), name = "Paired") 
+
+# Map each vertex to the correct color
+pair_colors_G2020<- my_palette_G2020[pair_IDs_G2020]
+pair_colors_G2020[is.na(pair_colors_G2020)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2020, edge.width = E(gfilter_G2020)$weight*6,edge.curved=F,vertex.color =pair_colors_G2020, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2020<- levels(na.omit(pair_IDs_G2020))
+legend_colors_G2020 <- my_palette_G2020[seq_along(pair_levels_G2020)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2020), "random pair"),
+  col    = c(legend_colors_G2020, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2020<-  igraph::as_data_frame(g_G2020, what="edges")
+
+vtype_G2020<- V(g_G2020)$type
+names(vtype_G2020) <- V(g_G2020)$name
+
+from_type_G2020<-vtype_G2020[ edge_G2020$from ]
+to_type_G2020<-vtype_G2020[ edge_G2020$to   ]
+
+edge_G2020$pair_type <- ifelse(
+  from_type_G2020== "mother-daughter" & to_type_G2020 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+
+```
+
+### SRI plot
+```{r}
+sri_G2020<- as.vector(net_G2020)
+sri_G2020 <- sri_G2020[sri_G2020 > 0]  # Remove zero values
+meansri_G2020<- mean(sri_G2020)
+
+
+hist(sri_G2020, breaks=30, main="Distribution of association index (SRI) for GB2 in 2020", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2020, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2020$from ]
+  to_pairid<- pairid[ edge_G2020$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2020$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2020<- mean_pair_association(g_G2020)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2020<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2020
+  permuted_edge_list$pair_type <- sample(edge_G2020$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2020[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2020<-mean(perm_E_G2020>= obs_value_G2020)
+
+cat("Mean of observed association =",obs_value_G2020,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2020),"\n")
+cat("P-value is",pvalue_e_G2020, "\t")
+if (pvalue_e_G2020< 0.05) cat("significative") else
+  cat("not significative")
+
+```
+```{r}
+hist(perm_E_G2020, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.4))
+abline(v=obs_value_G2020, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mother-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+permutation
+```{r}
+original_pairid_G2020<- V(g_G2020)$pairID
+
+num_perm<- 5000
+perm_V_G2020<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2020, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2020
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2020[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2020<- mean(perm_V_G2020>= obs_value_G2020)
+cat("Mean of observed association =",obs_value_G2020,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2020),"\n")
+cat("P-value is",pvalue_v_G2020, "\t")
+if (pvalue_v_G2020< 0.05) cat("significative") else
+  cat("not significative")
+```
+
+```{r}
+hist(perm_V_G2020, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.6))
+abline(v=obs_value_G2020, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+permute
+```{r}
+network_perm_G2020<-network_permutation(association_data=GBI_G2020,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2020,identities=colnames(GBI_G2020),days= 1:nrow(GBI_G2020))
+
+```
+
+```{r}
+individuals_G2020<-colnames(GBI_G2020)
+dimnames(network_perm_G2020)[[2]] <- individuals_G2020
+dimnames(network_perm_G2020)[[3]] <- individuals_G2020
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2020<-apply(network_perm_G2020, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2020)
+})
+
+pvalue_N_G2020<- mean(MD_perm_G2020>= obs_value_G2020)
+
+cat("Mean of observed association =",obs_value_G2020,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2020),"\n")
+cat("P-value is",pvalue_N_G2020,"\t")
+if (pvalue_N_G2020 < 0.05) cat("-> significative") else
+  cat("-> not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2020, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.1,0.4))
+abline(v=mean(obs_value_G2020), col="red", lwd=3)
+```
+# GB2 2021 ---------------------
+
+```{r}
+GB2_2021<-read.csv("CSV_Dayroosts_GB2_2021_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2021<-GB2_2021[c(1:56)] #filter columns
+GB2_2021<-GB2_2021[1:37,]
+
+GB2_2021 <- GB2_2021 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+colnames(GB2_2021)[colnames(GB2_2021) == "Date"] <- "date"
+```
+
+```{r}
+colnames(GB2_2021)<-as.character(colnames(GB2_2021))
+data_G2021<- GB2_2021%>%
+  mutate(across(-date, as.character)) %>%
+  pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2021$daygroup<-as.factor(paste(data_G2021$date, data_G2021$box, sep="_"))
+
+ind_G2021<-data.table(ID=c(data_G2021$ID), group=data_G2021$daygroup, day=c(data_G2021$date)) #df with 3 col: ID, group and day 
+GBI_G2021<- get_group_by_individual(ind_G2021, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2021<- as.matrix(GBI_G2021)
+```
+
+## network
+```{r}
+net_G2021<-get_network(GBI_G2021,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2021<- graph_from_adjacency_matrix(net_G2021,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2021,vertex.label = V(g_G2021)$name,edge.width = E(g_G2021)$weight * 6, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2021<- mean(net_G2021, na.rm = TRUE) +  sd(net_G2021, na.rm = TRUE)
+
+gfilter_G2021<- delete_edges(g_G2021, E(g_G2021)[weight <threshold_G2021]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2021, edge.width = E(gfilter_G2021)$weight*5,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2021<-data.frame(mother=c("AC35","41C1","076C","F44A","44BD","D629","C5F2","AA3C","15BF"),daughter=c("A816","34C9","494F","9A80","0734","8106","0145","A42D","8BE4"))
+
+mother_daughter_pairs_G2021$pairID<-c(1:nrow(mother_daughter_pairs_G2021))
+
+mother_ids_G2021<- mother_daughter_pairs_G2021$mother
+daughter_ids_G2021<- mother_daughter_pairs_G2021$daughter
+
+V(g_G2021)$type <- "other"  # default value
+V(g_G2021)[V(g_G2021)$name %in% mother_ids_G2021]$type   <- "mother-daughter"
+V(g_G2021)[V(g_G2021)$name %in% daughter_ids_G2021]$type <- "mother-daughter"
+
+plot(gfilter_G2021, edge.width = E(gfilter_G2021)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2021)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2021)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2021<- mother_daughter_pairs_G2021%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2021<- match(V(g_G2021)$name, md_lookup_G2021$ID)   # returns NA if the name is not found
+V(g_G2021)$pairID <- md_lookup_G2021$pairID[IDs_G2021] 
+
+pair_IDs_G2021<- factor(V(g_G2021)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2021<-length(levels(na.omit(pair_IDs_G2021)))
+my_palette_G2021<-brewer.pal(n = max(3,n_pairs_G2021), name = "Paired") 
+
+# Map each vertex to the correct color
+pair_colors_G2021<- my_palette_G2021[pair_IDs_G2021]
+pair_colors_G2021[is.na(pair_colors_G2021)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2021, edge.width = E(gfilter_G2021)$weight*6,edge.curved=F,vertex.color =pair_colors_G2021, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2021<- levels(na.omit(pair_IDs_G2021))
+legend_colors_G2021 <- my_palette_G2021[seq_along(pair_levels_G2021)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2021), "random pair"),
+  col    = c(legend_colors_G2021, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2021<-  igraph::as_data_frame(g_G2021, what="edges")
+
+vtype_G2021<- V(g_G2021)$type
+names(vtype_G2021) <- V(g_G2021)$name
+
+from_type_G2021<-vtype_G2021[ edge_G2021$from ]
+to_type_G2021<-vtype_G2021[ edge_G2021$to   ]
+
+edge_G2021$pair_type <- ifelse(
+  from_type_G2021== "mother-daughter" & to_type_G2021 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+```
+
+### SRI plot
+```{r}
+sri_G2021<- as.vector(net_G2021)
+sri_G2021 <- sri_G2021[sri_G2021 > 0]  # Remove zero values
+meansri_G2021<- mean(sri_G2021)
+
+
+hist(sri_G2021, breaks=30, main="Distribution of association index (SRI) for GB2 in 2021", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2021, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2021$from ]
+  to_pairid<- pairid[ edge_G2021$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2021$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2021<- mean_pair_association(g_G2021)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2021<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2021
+  permuted_edge_list$pair_type <- sample(edge_G2021$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2021[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2021<-mean(perm_E_G2021>= obs_value_G2021)
+
+cat("Mean of observed association =",obs_value_G2021,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2021),"\n")
+cat("P-value is",pvalue_e_G2021, "\t")
+if (pvalue_e_G2021< 0.05) cat("-> significative") else
+  cat("-> not significative")
+
+```
+```{r}
+hist(perm_E_G2021, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.5))
+abline(v=obs_value_G2021, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mother-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+permutation
+```{r}
+original_pairid_G2021<- V(g_G2021)$pairID
+
+num_perm<- 5000
+perm_V_G2021<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2021, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2021
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2021[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2021<- mean(perm_V_G2021>= obs_value_G2021)
+cat("Mean of observed association =",obs_value_G2021,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2021),"\n")
+cat("P-value is",pvalue_v_G2021, "\t")
+if (pvalue_v_G2021< 0.05) cat("-> significative") else
+  cat("-> not significative")
+```
+
+```{r}
+hist(perm_V_G2021, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.6))
+abline(v=obs_value_G2021, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+permute
+```{r}
+network_perm_G2021<-network_permutation(association_data=GBI_G2021,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2021,identities=colnames(GBI_G2021),days= 1:nrow(GBI_G2021))
+
+```
+
+```{r}
+individuals_G2021<-colnames(GBI_G2021)
+dimnames(network_perm_G2021)[[2]] <- individuals_G2021
+dimnames(network_perm_G2021)[[3]] <- individuals_G2021
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2021<-apply(network_perm_G2021, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2021)
+})
+
+pvalue_N_G2021<- mean(MD_perm_G2021>= obs_value_G2021)
+
+cat("Mean of observed association =",obs_value_G2021,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2021),"\n")
+cat("P-value is",pvalue_N_G2021,"\t")
+if (pvalue_N_G2021 < 0.05) cat("-> significative") else
+  cat("-> not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2021, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.2,0.55))
+abline(v=mean(obs_value_G2021), col="red", lwd=3)
+```
+# GB2 2022 ---------------------
+
+```{r}
+GB2_2022<-read.csv("CSV_Dayroosts_GB2_2022_juv.csv",header=TRUE, row.names=NULL,sep=";",check.names = F)
+
+GB2_2022<-GB2_2022[c(1:60)]#filter columns
+
+GB2_2022 <-GB2_2022 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+GB2_2022<-GB2_2022[, !(colnames(GB2_2022) %in% "15BF")]
+
+colnames(GB2_2022)[colnames(GB2_2022) == "Date"] <- "date"
+```
+
+```{r}
+colnames(GB2_2022)<-as.character(colnames(GB2_2022))
+data_G2022<- GB2_2022%>%
+  mutate(across(-date, as.character)) %>%
+  pivot_longer(
+    cols = -c(date),  
+    names_to = "ID",                     
+    values_to = "box"                       
+  ) %>%
+  drop_na(box)
+
+#group = date+box
+data_G2022$daygroup<-as.factor(paste(data_G2022$date, data_G2022$box, sep="_"))
+
+ind_G2022<-data.table(ID=c(data_G2022$ID), group=data_G2022$daygroup, day=c(data_G2022$date)) #df with 3 col: ID, group and day 
+GBI_G2022<- get_group_by_individual(ind_G2022, data_format = "individuals") #get group by individual matrix with 0 or 1 when present
+GBI_G2022<- as.matrix(GBI_G2022)
+```
+
+## network
+```{r}
+net_G2022<-get_network(GBI_G2022,data_format = "GBI",association_index = "SRI")
+```
+```{r}
+g_G2022<- graph_from_adjacency_matrix(net_G2022,mode = "undirected",weighted = TRUE,diag = FALSE) 
+plot(g_G2022,vertex.label = V(g_G2022)$name,edge.width = E(g_G2022)$weight * 6, layout = layout_with_fr, vertex.color = "lightblue",edge.color = "plum3") 
+```
+#####plot + threshold
+```{r}
+threshold_G2022<- mean(net_G2022, na.rm = TRUE) +  sd(net_G2022, na.rm = TRUE)
+
+gfilter_G2022<- delete_edges(g_G2022, E(g_G2022)[weight <threshold_G2022]) #either the threshold or the mean? depending on the graph wanted
+plot(gfilter_G2022, edge.width = E(gfilter_G2022)$weight*5,edge.curved=T,vertex.color = "lightblue", vertex.size = 15, vertex.label.cex = 0.7,edge.color = "plum3")
+```
+
+##vertex attributes
+```{r}
+mother_daughter_pairs_G2022<-data.frame(mother=c("41C1","BF04","879F","E063","22B0","663E","F44A","A539","44BD","D629","AA3C","5939","2D31","D4DC","418B","8787","A816","F377","D14D"),daughter=c("DFAD","0636","12D7","0F3D","CC06","8C52","0896","922C","FB4B","F4D9","054D","0A62","8B80","F948","B484","D6D5","B0C8","EB80","BA7C"))
+
+mother_daughter_pairs_G2022$pairID<-c(1:nrow(mother_daughter_pairs_G2022))
+
+mother_ids_G2022<- mother_daughter_pairs_G2022$mother
+daughter_ids_G2022<- mother_daughter_pairs_G2022$daughter
+
+V(g_G2022)$type <- "other"  # default value
+V(g_G2022)[V(g_G2022)$name %in% mother_ids_G2022]$type   <- "mother-daughter"
+V(g_G2022)[V(g_G2022)$name %in% daughter_ids_G2022]$type <- "mother-daughter"
+
+plot(gfilter_G2022, edge.width = E(gfilter_G2022)$weight*6,layout = layout_with_fr,vertex.color = ifelse(V(g_G2022)$type == "mother-daughter",   "darkcyan", "gray"),vertex.label = V(g_G2022)$name,edge.color="plum3")
+```
+```{r}
+md_lookup_G2022<- mother_daughter_pairs_G2022%>%pivot_longer(cols = c("mother","daughter"), values_to = "ID") %>%select(ID, pairID)
+#pivot the matrix so that each ID has the pair ID separately
+
+IDs_G2022<- match(V(g_G2022)$name, md_lookup_G2022$ID)   # returns NA if the name is not found
+V(g_G2022)$pairID <- md_lookup_G2022$pairID[IDs_G2022] 
+
+pair_IDs_G2022<- factor(V(g_G2022)$pairID)
+
+# Create a palette for however many pairIDs you have (excluding NA)
+n_pairs_G2022<-length(levels(na.omit(pair_IDs_G2022)))
+my_palette_G2022 <-  rainbow(19) 
+
+# Map each vertex to the correct color
+pair_colors_G2022<- my_palette_G2022[pair_IDs_G2022]
+pair_colors_G2022[is.na(pair_colors_G2022)] <- "gray80"
+```
+
+##big plot
+```{r}
+plot(gfilter_G2022, edge.width = E(gfilter_G2022)$weight*6,edge.curved=F,vertex.color =pair_colors_G2022, vertex.size = 15, vertex.label.cex = 0.7)
+pair_levels_G2022<- levels(na.omit(pair_IDs_G2022))
+legend_colors_G2022 <- my_palette_G2022[seq_along(pair_levels_G2022)]
+
+legend(
+  "topleft",
+  legend = c(paste("Pair", pair_levels_G2022), "random pair"),
+  col    = c(legend_colors_G2022, "gray80"),
+  pch    = 19,
+  pt.cex = 2,
+  cex = 0.6,
+  bty    = "n"
+)
+```
+###edge list
+```{r}
+edge_G2022<-  igraph::as_data_frame(g_G2022, what="edges")
+
+vtype_G2022<- V(g_G2022)$type
+names(vtype_G2022) <- V(g_G2022)$name
+
+from_type_G2022<-vtype_G2022[ edge_G2022$from ]
+to_type_G2022<-vtype_G2022[ edge_G2022$to   ]
+
+edge_G2022$pair_type <- ifelse(
+  from_type_G2022== "mother-daughter" & to_type_G2022 == "mother-daughter",
+  "mother-daughter",
+  "other"
+)
+```
+
+### SRI plot
+```{r}
+sri_G2022<- as.vector(net_G2022)
+sri_G2022 <- sri_G2022[sri_G2022 > 0]  # Remove zero values
+meansri_G2022<- mean(sri_G2022)
+
+
+hist(sri_G2022, breaks=30, main="Distribution of association index (SRI) for GB2 in 2022", 
+     xlab="Association index (SRI)", ylab="Frequency", col="lightblue", border="black",xlim = (0:1))
+
+#red line for the mean
+abline(v=meansri_G2022, col="blue", lwd=2)
+```
+Two different hist for the two types of pairs
+```{r}
+
+```
+## EDGE PERMUTATION
+Metrics of interest for quantifying: 
+1- The mean edge weight among mother–daughter vertices
+2- the difference in average association between mother–daughter pairs versus all other pairs
+
+1-
+observed value
+```{r}
+mean_pair_association <- function(g) {
+  pairid <- V(g)$pairID #new variable with the pair ID
+  names(pairid) <- V(g)$name #get the pair ID individual's name 
+  #find the pairID of both individual
+  from_pairid<- pairid[ edge_G2022$from ]
+  to_pairid<- pairid[ edge_G2022$to   ]
+  
+  #has to have the same ID and not NA
+  MDpairs <- (from_pairid == to_pairid) & !is.na(from_pairid)
+  
+  #isolate the weight of association and measure mean
+  md_weights <- edge_G2022$weight[MDpairs]
+  mean(md_weights, na.rm=TRUE)
+}
+obs_value_G2022<- mean_pair_association(g_G2022)
+```
+
+permutation
+```{r}
+num_permutations<- 5000
+perm_E_G2022<-numeric(num_permutations)
+
+for (i in seq_len(num_permutations)) {
+  # Randomly permute the pair_type labels
+  permuted_edge_list<-edge_G2022
+  permuted_edge_list$pair_type <- sample(edge_G2022$pair_type)
+  
+  # Calculate the statistic for permuted mother-daughter pairs
+  permuted_md_edges <- permuted_edge_list[permuted_edge_list$pair_type == "mother-daughter", ]
+  perm_E_G2022[i] <- mean(permuted_md_edges$weight, na.rm = TRUE)
+}
+```
+
+```{r}
+pvalue_e_G2022<-mean(perm_E_G2022>= obs_value_G2022)
+
+cat("Mean of observed association =",obs_value_G2022,"\n")
+cat("Mean of permuted association =",mean(perm_E_G2022),"\n")
+cat("P-value is",pvalue_e_G2022, "\t")
+if (pvalue_e_G2022< 0.05) cat("-> significative") else
+  cat("-> not significative")
+
+```
+```{r}
+hist(perm_E_G2022, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(edge label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0.1,0.3))
+abline(v=obs_value_G2022, col="red", lwd=3)
+```
+Good, however: maybe a vertex-label permutation would be better than a edge-label because mother-daughter is a fundamental property of individuals.
+
+In edge-label, we shuffle which edges are labeled "MD", and in a vertex, we would shuffle the type of the vertex and then redefine the MD edges
+
+vertex-label permutations best capture the idea that we’re testing whether these specific mother–daughter individuals have unusually strong connections compared to any random subset of individuals
+But we would measure all the mother with all the mothers association?
+
+## VERTEX PERMUTATION
+
+I already calculated the observed value
+
+permutation
+```{r}
+original_pairid_G2022<- V(g_G2022)$pairID
+
+num_perm<- 5000
+perm_V_G2022<- numeric(num_perm)
+
+for (i in seq_len(num_perm)) {
+  #shuffle the entire vector of pairIDs
+  new_pid<- sample(original_pairid_G2022, replace = FALSE)
+  
+  #copy the original graph and assign the new id
+  g_perm <- g_G2022
+  V(g_perm)$pairID <- new_pid
+  
+  #mean association
+  perm_V_G2022[i] <- mean_pair_association(g_perm)
+}
+
+```
+
+```{r}
+pvalue_v_G2022<- mean(perm_V_G2022>= obs_value_G2022)
+cat("Mean of observed association =",obs_value_G2022,"\n")
+cat("Mean of permuted association =",mean(perm_V_G2022),"\n")
+cat("P-value is",pvalue_v_G2022, "\t")
+if (pvalue_v_G2022< 0.05) cat("-> significative") else
+  cat("-> not significative")
+```
+
+```{r}
+hist(perm_V_G2022, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(vertex label permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.5))
+abline(v=obs_value_G2022, col="red", lwd=3)
+```
+
+##DATA RANDOMIZATION 
+(randomization of the entire network, then calculation of the differences between md pairs and non-md pairs to see if it is different than what is observed)
+mean of association for mother-daughter pairs is already measured
+
+permute
+```{r}
+network_perm_G2022<-network_permutation(association_data=GBI_G2022,data_format = "GBI",permutations=5000,association_index = "SRI",association_matrix = net_G2022,identities=colnames(GBI_G2022),days= 1:nrow(GBI_G2022))
+
+```
+
+```{r}
+individuals_G2022<-colnames(GBI_G2022)
+dimnames(network_perm_G2022)[[2]] <- individuals_G2022
+dimnames(network_perm_G2022)[[3]] <- individuals_G2022
+#network_perm[1,,]
+
+md_mean_from_adj <- function(adj_mat, md_pairs) {
+  # 'adj_mat': a 26x26 adjacency matrix with row/col names = individual IDs
+  # 'md_pairs': a data frame with columns "mother", "daughter" 
+  #    e.g. mother = "B587", daughter = "5672", etc.
+
+  n_pairs <- nrow(md_pairs)
+  vals <- numeric(n_pairs)
+
+  for (i in seq_len(n_pairs)) {
+    mother_id <- md_pairs$mother[i]
+    daughter_id <- md_pairs$daughter[i]
+
+    # match them to the adjacency
+    row_idx <- match(mother_id, rownames(adj_mat))
+    col_idx <- match(daughter_id, colnames(adj_mat))
+
+    # If they exist in the names, get the weight
+    # If either is NA, the pair is not found, so set to NA
+    if (!is.na(row_idx) && !is.na(col_idx)) {
+      vals[i] <- adj_mat[row_idx, col_idx]
+    } else {
+      vals[i] <- NA
+    }
+  }
+
+  # Return the mean edge weight across all real MD pairs
+  mean(vals, na.rm = TRUE)
+}
+
+```
+
+```{r}
+#measure the association only for the md in the entire permutations
+MD_perm_G2022<-apply(network_perm_G2022, 1, function(adj_mat) {
+  md_mean_from_adj(adj_mat, mother_daughter_pairs_G2022)
+})
+
+pvalue_N_G2022<- mean(MD_perm_G2022>= obs_value_G2022)
+
+cat("Mean of observed association =",obs_value_G2022,"\n")
+cat("Mean of permuted association =",mean(MD_perm_G2022),"\n")
+cat("P-value is",pvalue_N_G2022,"\t")
+if (pvalue_N_G2022 < 0.05) cat("-> significative") else
+  cat("-> not significative")
+
+```
+
+```{r}
+hist(MD_perm_G2022, breaks=30, col="lightblue",
+     main="Distribution of the permuted mother-daughter association \n(whole network permutation)",
+     xlab="Mean association among mother-daughter vertices (permuted)",xlim = c(0,0.2))
+abline(v=mean(obs_value_G2022), col="red", lwd=3)
+```
+

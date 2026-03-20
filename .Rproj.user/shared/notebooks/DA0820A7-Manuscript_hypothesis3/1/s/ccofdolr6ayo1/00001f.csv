@@ -1,0 +1,5 @@
+"0","centrality_perm_pooled_numeric_GB2 <- run_permutation_pooled_numeric_GB2("
+"0","  df = centrality_GB2,"
+"0","  responses = c(""strength_z"", ""eigen_z"", ""closeness_z""),"
+"0","  n_perm = 1000"
+"0",")"

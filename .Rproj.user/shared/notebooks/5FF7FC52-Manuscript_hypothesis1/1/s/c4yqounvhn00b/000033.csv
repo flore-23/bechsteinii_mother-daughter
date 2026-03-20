@@ -1,0 +1,4 @@
+"0","assoc_mother_daughter_GB2<-edges_GB2$weight[edges_GB2$pair_type==""mother-daughter""]"
+"0","assoc_other_GB2<-edges_GB2$weight[edges_GB2$pair_type!=""mother-daughter""]"
+"0",""
+"0","hist(assoc_mother_daughter_GB2, main=""Distribution of associations for mother-daughter pairs"", xlab=""association strength"")"

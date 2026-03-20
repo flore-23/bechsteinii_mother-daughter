@@ -1,0 +1,8 @@
+"0","years_UA <- sort(unique(edges_UA$year))"
+"0",""
+"0","mom_juv_UA <- map_dfr("
+"0","  years_UA,"
+"0","  make_mom_juv_for_year,"
+"0","  edges = edges_UA,"
+"0","  md_table = mother_daughter_UA"
+"0",")"

@@ -1,0 +1,6 @@
+"0","library(ggeffects)"
+"0","pred_GB2 <- ggpredict(model_final_interaction_GB2, terms = c(""colony_size_c [-25:25 by=1]"", ""pair_type_2""), bias_correction = TRUE)"
+"0","pred_UA <- ggpredict(model_final_UA, terms = c(""colony_size_c [-10:10 by=1]"", ""pair_type_2""), bias_correction = TRUE)"
+"0",""
+"0","#simple plot"
+"0","plot(pred_GB2) + ggtitle(""Colony GB2"")"

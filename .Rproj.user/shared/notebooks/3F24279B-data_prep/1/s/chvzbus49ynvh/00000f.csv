@@ -1,0 +1,5 @@
+"0","edge_U2013$year<-2013;edge_U2014$year<-2014;edge_U2015$year<-2015;edge_U2016$year<-2016;edge_U2017$year<-2017;edge_U2018$year<-2018;edge_U2019$year<-2019;edge_U2020$year<-2020;edge_U2021$year<-2021;edge_U2022$year<-2022;edge_U2023$year<-2023"
+"0",""
+"0","edges_UA<- rbind(edge_U2013, edge_U2014, edge_U2015, edge_U2016, edge_U2017, edge_U2018, edge_U2019, edge_U2020, edge_U2021, edge_U2022, edge_U2023)"
+"0","#save it "
+"0","write.csv(edges_UA, here(""data"",""saved_matrices"",""UA"",""edge_list_UA.csv""), row.names = FALSE)"

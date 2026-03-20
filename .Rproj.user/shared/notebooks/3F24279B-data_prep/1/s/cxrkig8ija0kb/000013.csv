@@ -1,0 +1,11 @@
+"0","data_G2019<- GB2_2019 %>%pivot_longer(
+    cols = -c(date),  
+    names_to = ""ID"",                     
+    values_to = ""box""                       
+  ) %>%
+  drop_na(box)
+"
+"1","[1m[33mError[39m in `pivot_longer()`:[22m
+[33m![39m Can't combine `1731` <integer> and `A24D` <character>.
+[90mRun `]8;;x-r-run:rlang::last_trace()rlang::last_trace()]8;;` to see where the error occurred.[39m
+"

@@ -1,0 +1,5 @@
+"0","edges_UA$pair_type<-as.factor(edges_UA$pair_type)"
+"0","edges_UA$pair_type <- relevel(edges_UA$pair_type, ref = ""other"")"
+"0",""
+"0","# re scale to fit the beta distribution"
+"0","edges_UA$weight <- (edges_UA$weight * (nrow(edges_UA) - 1) + 0.5) / nrow(edges_UA)"

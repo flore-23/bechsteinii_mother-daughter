@@ -1,0 +1,4 @@
+"0",""
+"0","ggplot(centrality_GB2, aes(closeness)) +"
+"0","  geom_histogram(bins = 30) +"
+"0","  facet_wrap(~year)"

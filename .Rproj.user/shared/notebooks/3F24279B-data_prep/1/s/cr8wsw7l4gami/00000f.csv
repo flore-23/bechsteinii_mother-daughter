@@ -1,0 +1,3 @@
+"0","GB2_2017<-read.csv(here(""data"",""raw_roost_data"",""CSV_Dayroosts_GB2_2017_juv.csv""),header = TRUE,sep = "";"",row.names = NULL,check.names = FALSE)"
+"0","GB2_2017<-GB2_2017[c(0:36)] #filter columns"
+"0","GB2_2017<-GB2_2017[1:42,]"

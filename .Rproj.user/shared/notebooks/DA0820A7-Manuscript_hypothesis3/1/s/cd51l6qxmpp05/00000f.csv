@@ -1,0 +1,2 @@
+"0","edges_MD_GB2 <- edges_GB2 %>%"
+"0","  filter(pairID %in% mother_daughter_GB2$pairID)"

@@ -1,0 +1,9 @@
+"0","obs_df <- perm_results_GB2$summary %>%
+  mutate(metric = case_when(
+    metric == ""strength_z""  ~ ""Strength"",
+    metric == ""eigen_z""     ~ ""Eigenvector"",
+    metric == ""closeness_z"" ~ ""Closeness""
+  ))
+"
+"2","Error: object 'perm_results_GB2' not found
+"

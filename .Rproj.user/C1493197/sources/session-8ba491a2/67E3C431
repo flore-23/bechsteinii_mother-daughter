@@ -1,0 +1,29 @@
+{
+    "id": "67E3C431",
+    "path": "~/Desktop/Master_analysis/scripts/Manuscript_hypothesis3.Rmd",
+    "project_path": "scripts/Manuscript_hypothesis3.Rmd",
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1769692348321.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "812,0",
+        "scrollLine": "789",
+        "docOutlineVisible": "1",
+        "last_setup_crc32": "",
+        "docOutlineSize": "209"
+    },
+    "folds": "551|6|650|0|\n962|6|1013|0|\n",
+    "lastKnownWriteTime": 1771324908,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1771324908682,
+    "read_only": false,
+    "read_only_alternatives": []
+}

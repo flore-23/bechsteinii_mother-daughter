@@ -1,0 +1,6 @@
+"0","colony_size_UA<-read.csv(here(""data"",""saved_matrices"",""UA"",""colony_size_UA.csv""),header=TRUE,sep="","",check.names = F)"
+"0","colony_size_UA<- colony_size_UA %>%"
+"0","  mutate(year = as.numeric(year))"
+"0",""
+"0","edges_UA <- edges_UA %>%"
+"0","  left_join(colony_size_UA, by = ""year"")"
