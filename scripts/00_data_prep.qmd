@@ -72,7 +72,7 @@ mother_daughter_UA <- read.csv(here("data","mother_daughter_UA.csv"))
 ## GB2
 
 ```{r}
-#| label: load roost df
+#| label: load_roost_df
 #| output: false
 #| code-fold: true
 #load data set and clean unnecessary columns
