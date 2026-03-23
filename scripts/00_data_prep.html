@@ -2380,7 +2380,12 @@ vertical-align: -.125em;
   <ul class="collapse">
   <li><a href="#gb2" id="toc-gb2" class="nav-link" data-scroll-target="#gb2"><span class="header-section-number">3.1</span> GB2</a></li>
   </ul></li>
-  <li><a href="#create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets" id="toc-create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets" class="nav-link" data-scroll-target="#create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets"><span class="header-section-number">4</span> Create GBI and association matrices, and edge lists from raw association datasets</a></li>
+  <li><a href="#create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets" id="toc-create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets" class="nav-link" data-scroll-target="#create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets"><span class="header-section-number">4</span> Create GBI and association matrices, and edge lists from raw association datasets</a>
+  <ul class="collapse">
+  <li><a href="#ua" id="toc-ua" class="nav-link" data-scroll-target="#ua"><span class="header-section-number">4.1</span> UA</a></li>
+  </ul></li>
+  <li><a href="#create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets-1" id="toc-create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets-1" class="nav-link" data-scroll-target="#create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets-1"><span class="header-section-number">5</span> Create GBI and association matrices, and edge lists from raw association datasets</a></li>
+  <li><a href="#mother---non-related-daughter-datasets" id="toc-mother---non-related-daughter-datasets" class="nav-link" data-scroll-target="#mother---non-related-daughter-datasets"><span class="header-section-number">6</span> Mother - non-related daughter datasets</a></li>
   </ul>
 </nav>
 </div>
@@ -2647,20 +2652,19 @@ vertical-align: -.125em;
 <span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>      )</span>
 <span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add pair type</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add pair type, either &quot;mother-daughter&quot; if the pairID is present in the mother_daughter df, otherwise &quot;other&quot;</span></span>
 <span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>  edge <span class="ot">&lt;-</span> edge <span class="sc">%&gt;%</span></span>
 <span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
 <span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>      <span class="at">pair_type =</span> <span class="fu">ifelse</span>(</span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        pairID <span class="sc">%in%</span> mother_daughter_df<span class="sc">$</span>pairID[mother_daughter_df<span class="sc">$</span>year <span class="sc">==</span> year],</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        pairID <span class="sc">%in%</span> mother_daughter_df<span class="sc">$</span>pairID[mother_daughter_df<span class="sc">$</span>year <span class="sc">==</span> year], </span>
 <span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;mother-daughter&quot;</span>,</span>
 <span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;other&quot;</span></span>
 <span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>      )</span>
 <span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(edge, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>, <span class="st">&quot;saved_matrices&quot;</span>, colony, <span class="fu">paste0</span>(<span class="st">&quot;edge_G&quot;</span>, year, <span class="st">&quot;.csv&quot;</span>)), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(edge)</span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(edge, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>, <span class="st">&quot;saved_matrices&quot;</span>, colony, <span class="fu">paste0</span>(<span class="st">&quot;edge_G&quot;</span>, year, <span class="st">&quot;.csv&quot;</span>)), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(edge)</span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Run the function</p>
 <div class="cell">
@@ -2674,19 +2678,304 @@ vertical-align: -.125em;
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">mother_daughter_df =</span> mother_daughter_GB2</span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Generating  26  x  26  matrix
-Generating  34  x  34  matrix
-Generating  36  x  36  matrix
-Generating  24  x  24  matrix
-Generating  35  x  35  matrix
-Generating  36  x  36  matrix
-Generating  40  x  40  matrix
-Generating  50  x  50  matrix
-Generating  55  x  55  matrix
-Generating  55  x  55  matrix
-Generating  68  x  68  matrix</code></pre>
 </div>
+<section id="create-the-edge-list-of-all-the-years-together" class="level4">
+<h4 class="anchored" data-anchor-id="create-the-edge-list-of-all-the-years-together">Create the edge list of all the years together</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>edges_all <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="dv">2013</span><span class="sc">:</span><span class="dv">2023</span>, <span class="cf">function</span>(y) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">#load the created edge lists for each year</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>, <span class="st">&quot;saved_matrices&quot;</span>, <span class="st">&quot;GB2&quot;</span>, <span class="fu">paste0</span>(<span class="st">&quot;edge_G&quot;</span>, y, <span class="st">&quot;.csv&quot;</span>)))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># add the year in a new column</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  df<span class="sc">$</span>year <span class="ot">&lt;-</span> y</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(df)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>edges_GB2 <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(edges_all)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">#and save it </span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(edges_GB2, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;saved_matrices&quot;</span>,<span class="st">&quot;GB2&quot;</span>,<span class="st">&quot;edge_list_GB2.csv&quot;</span>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Then, we can do the same for the other colony</p>
+</section>
+<section id="ua" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="ua"><span class="header-section-number">4.1</span> UA</h2>
+<section id="load-raw-association-data" class="level4">
+<h4 class="anchored" data-anchor-id="load-raw-association-data">load raw association data</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#load data set and clean unnecessary columns</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 2013</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>UA_2013<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2013_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>UA_2013<span class="ot">&lt;-</span>UA_2013[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">24</span>)]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(UA_2013)[<span class="fu">colnames</span>(UA_2013) <span class="sc">==</span> <span class="st">&quot;number&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;date&quot;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#2014</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>UA_2014<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2014_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>UA_2014<span class="ot">&lt;-</span>UA_2014[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>UA_2014<span class="ot">&lt;-</span>UA_2014[<span class="dv">1</span><span class="sc">:</span><span class="dv">55</span>,]</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(UA_2014)[<span class="fu">colnames</span>(UA_2014) <span class="sc">==</span> <span class="st">&quot;number&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;date&quot;</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>UA_2014<span class="ot">&lt;-</span> UA_2014[, <span class="sc">!</span>(<span class="fu">colnames</span>(UA_2014) <span class="sc">%in%</span> <span class="st">&quot;Year&quot;</span>)]</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>UA_2014<span class="ot">&lt;-</span> UA_2014[, <span class="sc">!</span>(<span class="fu">colnames</span>(UA_2014) <span class="sc">%in%</span> <span class="st">&quot;Month&quot;</span>)]</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>UA_2014<span class="ot">&lt;-</span> UA_2014[, <span class="sc">!</span>(<span class="fu">colnames</span>(UA_2014) <span class="sc">%in%</span> <span class="st">&quot;Day&quot;</span>)]</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">#2015</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>UA_2015<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2015_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>UA_2015<span class="ot">&lt;-</span>UA_2015[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">23</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>UA_2015<span class="ot">&lt;-</span>UA_2015[<span class="dv">2</span><span class="sc">:</span><span class="dv">51</span>,]</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>UA_2015<span class="ot">&lt;-</span>UA_2015 <span class="sc">%&gt;%</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span> <span class="fu">replace</span>(., . <span class="sc">==</span> <span class="st">&quot;&quot;</span>, <span class="cn">NA</span>)))</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">#GB2_2022&lt;-GB2_2022[, !(colnames(GB2_2022) %in% &quot;15BF&quot;)]</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(UA_2015)[<span class="fu">colnames</span>(UA_2015) <span class="sc">==</span> <span class="st">&quot;number&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;date&quot;</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="co">#2016</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>UA_2016<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2016_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>UA_2016<span class="ot">&lt;-</span>UA_2016[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">27</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>UA_2016<span class="ot">&lt;-</span>UA_2016[<span class="dv">2</span><span class="sc">:</span><span class="dv">39</span>,]</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="co">#2017</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>UA_2017<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2017_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>UA_2017<span class="ot">&lt;-</span>UA_2017[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a><span class="co">#2018</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>UA_2018<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2018_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>UA_2018<span class="ot">&lt;-</span>UA_2018[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">27</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(UA_2018)[<span class="fu">names</span>(UA_2018) <span class="sc">==</span> <span class="st">&quot;D6CC&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;FA5B&quot;</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(UA_2018)[<span class="fu">names</span>(UA_2018) <span class="sc">==</span> <span class="st">&quot;0B43&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;101F&quot;</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a><span class="co">#2019</span></span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>UA_2019<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2019_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>UA_2019<span class="ot">&lt;-</span>UA_2019[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">23</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>UA_2019<span class="ot">&lt;-</span>UA_2019[<span class="dv">1</span><span class="sc">:</span><span class="dv">41</span>,]</span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>UA_2019<span class="ot">&lt;-</span>UA_2019 <span class="sc">%&gt;%</span></span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a> <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span> <span class="fu">replace</span>(., . <span class="sc">==</span> <span class="st">&quot;&quot;</span>, <span class="cn">NA</span>)))</span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>UA_2019 <span class="ot">&lt;-</span> UA_2019 <span class="sc">%&gt;%</span></span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span>date, as.character))</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a><span class="co">#2020</span></span>
+<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>UA_2020<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2020_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>UA_2020<span class="ot">&lt;-</span>UA_2020[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">24</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>UA_2020<span class="ot">&lt;-</span>UA_2020[<span class="dv">1</span><span class="sc">:</span><span class="dv">28</span>,]</span>
+<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>UA_2020 <span class="ot">&lt;-</span> UA_2020 <span class="sc">%&gt;%</span></span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span>date, as.character))</span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a><span class="co">#2021</span></span>
+<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a>UA_2021<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2021_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a>UA_2021<span class="ot">&lt;-</span>UA_2021[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">25</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-70"><a href="#cb7-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-71"><a href="#cb7-71" aria-hidden="true" tabindex="-1"></a>UA_2021<span class="ot">&lt;-</span>UA_2021 <span class="sc">%&gt;%</span></span>
+<span id="cb7-72"><a href="#cb7-72" aria-hidden="true" tabindex="-1"></a> <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span> <span class="fu">replace</span>(., . <span class="sc">==</span> <span class="st">&quot;&quot;</span>, <span class="cn">NA</span>)))</span>
+<span id="cb7-73"><a href="#cb7-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-74"><a href="#cb7-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-75"><a href="#cb7-75" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(UA_2021)[<span class="fu">colnames</span>(UA_2021) <span class="sc">==</span> <span class="st">&quot;Date&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;date&quot;</span></span>
+<span id="cb7-76"><a href="#cb7-76" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(UA_2021)[<span class="fu">names</span>(UA_2021) <span class="sc">==</span> <span class="st">&quot;9B39&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;F50E&quot;</span></span>
+<span id="cb7-77"><a href="#cb7-77" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(UA_2021)[<span class="fu">names</span>(UA_2021) <span class="sc">==</span> <span class="st">&quot;37F2&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;100F&quot;</span></span>
+<span id="cb7-78"><a href="#cb7-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-79"><a href="#cb7-79" aria-hidden="true" tabindex="-1"></a>UA_2021<span class="ot">&lt;-</span> UA_2021 <span class="sc">%&gt;%</span></span>
+<span id="cb7-80"><a href="#cb7-80" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span>date, as.character))</span>
+<span id="cb7-81"><a href="#cb7-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-82"><a href="#cb7-82" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-83"><a href="#cb7-83" aria-hidden="true" tabindex="-1"></a><span class="co">#2022</span></span>
+<span id="cb7-84"><a href="#cb7-84" aria-hidden="true" tabindex="-1"></a>UA_2022<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2022_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-85"><a href="#cb7-85" aria-hidden="true" tabindex="-1"></a>UA_2022<span class="ot">&lt;-</span>UA_2022[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">22</span>)] <span class="co">#filter columns</span></span>
+<span id="cb7-86"><a href="#cb7-86" aria-hidden="true" tabindex="-1"></a>UA_2022<span class="ot">&lt;-</span>UA_2022[<span class="dv">1</span><span class="sc">:</span><span class="dv">29</span>,]</span>
+<span id="cb7-87"><a href="#cb7-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-88"><a href="#cb7-88" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(UA_2022)[<span class="fu">colnames</span>(UA_2022) <span class="sc">==</span> <span class="st">&quot;Date&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;date&quot;</span></span>
+<span id="cb7-89"><a href="#cb7-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-90"><a href="#cb7-90" aria-hidden="true" tabindex="-1"></a>UA_2022<span class="ot">&lt;-</span> UA_2022 <span class="sc">%&gt;%</span></span>
+<span id="cb7-91"><a href="#cb7-91" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="sc">-</span>date, as.character))</span>
+<span id="cb7-92"><a href="#cb7-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-93"><a href="#cb7-93" aria-hidden="true" tabindex="-1"></a><span class="co">#_______________________________________________________________</span></span>
+<span id="cb7-94"><a href="#cb7-94" aria-hidden="true" tabindex="-1"></a><span class="co">#2023</span></span>
+<span id="cb7-95"><a href="#cb7-95" aria-hidden="true" tabindex="-1"></a>UA_2023<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;raw_roost_data&quot;</span>,<span class="st">&quot;CSV_Dayroosts_UA_2023_juv.csv&quot;</span>),<span class="at">header =</span> <span class="cn">TRUE</span>,<span class="at">sep =</span> <span class="st">&quot;;&quot;</span>,<span class="at">row.names =</span> <span class="cn">NULL</span>,<span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-96"><a href="#cb7-96" aria-hidden="true" tabindex="-1"></a>UA_2023<span class="ot">&lt;-</span>UA_2023[<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">29</span>)]</span>
+<span id="cb7-97"><a href="#cb7-97" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(UA_2023)[<span class="fu">colnames</span>(UA_2023) <span class="sc">==</span> <span class="st">&quot;Date&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;date&quot;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
+</section>
+<section id="create-gbi-and-association-matrices-and-edge-lists-from-raw-association-datasets-1" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Create GBI and association matrices, and edge lists from raw association datasets</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Create a function that will create the GBI, the association matrices (net), the network objects and the edge list for all years </span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>create_matrices_UA <span class="ot">&lt;-</span> <span class="cf">function</span>(data, year, colony, mother_daughter_df) {</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create GBI matrix</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  data_long <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">cols =</span> <span class="sc">-</span><span class="fu">c</span>(date),</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">names_to =</span> <span class="st">&quot;ID&quot;</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">values_to =</span> <span class="st">&quot;box&quot;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>(box)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  data_long<span class="sc">$</span>daygroup <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(<span class="fu">paste</span>(data_long<span class="sc">$</span>date, data_long<span class="sc">$</span>box, <span class="at">sep =</span> <span class="st">&quot;_&quot;</span>))</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  ind <span class="ot">&lt;-</span> <span class="fu">data.table</span>(</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">ID =</span> data_long<span class="sc">$</span>ID,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">group =</span> data_long<span class="sc">$</span>daygroup,</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">day =</span> data_long<span class="sc">$</span>date</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="co">#then use the function in the &#39;asnipe&#39; package</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  GBI <span class="ot">&lt;-</span> <span class="fu">get_group_by_individual</span>(ind, <span class="at">data_format =</span> <span class="st">&quot;individuals&quot;</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  GBI <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(GBI)</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(GBI, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>, <span class="st">&quot;saved_matrices&quot;</span>, colony, <span class="fu">paste0</span>(<span class="st">&quot;GBI_U&quot;</span>, year, <span class="st">&quot;.csv&quot;</span>)), <span class="at">row.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create network</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  net <span class="ot">&lt;-</span> <span class="fu">get_network</span>(GBI, <span class="at">data_format =</span> <span class="st">&quot;GBI&quot;</span>, <span class="at">association_index =</span> <span class="st">&quot;SRI&quot;</span>)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(net, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>, <span class="st">&quot;saved_matrices&quot;</span>, colony, <span class="fu">paste0</span>(<span class="st">&quot;net_U&quot;</span>, year, <span class="st">&quot;.csv&quot;</span>)), <span class="at">row.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create edge list</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  g <span class="ot">&lt;-</span> <span class="fu">graph_from_adjacency_matrix</span>(net, <span class="at">mode =</span> <span class="st">&quot;undirected&quot;</span>, <span class="at">weighted =</span> <span class="cn">TRUE</span>, <span class="at">diag =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  edge <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">as_data_frame</span>(g, <span class="at">what =</span> <span class="st">&quot;edges&quot;</span>)</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>  edge <span class="ot">&lt;-</span> edge <span class="sc">%&gt;%</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">pairID =</span> <span class="fu">ifelse</span>(</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>        from <span class="sc">&lt;</span> to,</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>        <span class="fu">paste</span>(from, to, <span class="at">sep =</span> <span class="st">&quot;-&quot;</span>),</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="fu">paste</span>(to, from, <span class="at">sep =</span> <span class="st">&quot;-&quot;</span>)</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add pair type, either &quot;mother-daughter&quot; if the pairID is present in the mother_daughter df, otherwise &quot;other&quot;</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>  edge <span class="ot">&lt;-</span> edge <span class="sc">%&gt;%</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>      <span class="at">pair_type =</span> <span class="fu">ifelse</span>(</span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>        pairID <span class="sc">%in%</span> mother_daughter_df<span class="sc">$</span>pairID[mother_daughter_df<span class="sc">$</span>year <span class="sc">==</span> year], </span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;mother-daughter&quot;</span>,</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;other&quot;</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write.csv</span>(edge, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>, <span class="st">&quot;saved_matrices&quot;</span>, colony, <span class="fu">paste0</span>(<span class="st">&quot;edge_U&quot;</span>, year, <span class="st">&quot;.csv&quot;</span>)), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(edge)</span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Run the function</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="dv">2013</span><span class="sc">:</span><span class="dv">2023</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (y <span class="cf">in</span> <span class="dv">2013</span><span class="sc">:</span><span class="dv">2023</span>) {</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">create_matrices_UA</span>(</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">get</span>(<span class="fu">paste0</span>(<span class="st">&quot;UA_&quot;</span>, y)),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> y,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">colony =</span> <span class="st">&quot;UA&quot;</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">mother_daughter_df =</span> mother_daughter_UA</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="create-the-edge-list-of-all-the-years-together-1" class="level4">
+<h4 class="anchored" data-anchor-id="create-the-edge-list-of-all-the-years-together-1">Create the edge list of all the years together</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>edges_all <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="dv">2013</span><span class="sc">:</span><span class="dv">2023</span>, <span class="cf">function</span>(y) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">#load the created edge lists for each year</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">here</span>(<span class="st">&quot;data&quot;</span>, <span class="st">&quot;saved_matrices&quot;</span>, <span class="st">&quot;UA&quot;</span>, <span class="fu">paste0</span>(<span class="st">&quot;edge_U&quot;</span>, y, <span class="st">&quot;.csv&quot;</span>)))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># add the year in a new column</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  df<span class="sc">$</span>year <span class="ot">&lt;-</span> y</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(df)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>edges_UA <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(edges_all)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">#and save it </span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(edges_UA, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;saved_matrices&quot;</span>,<span class="st">&quot;UA&quot;</span>,<span class="st">&quot;edge_list_UA.csv&quot;</span>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="mother---non-related-daughter-datasets" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Mother - non-related daughter datasets</h1>
+<p>Creation of a lists that state associations between mothers and non-related daughters, by creating a function that goes into the mother-daughter df, and assign them in a role for a specific year, either “mother” or “daughter”</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>make_mom_juv_for_year <span class="ot">&lt;-</span> <span class="cf">function</span>(y, edges, md_table) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  md_y <span class="ot">&lt;-</span> md_table <span class="sc">%&gt;%</span> <span class="fu">filter</span>(year <span class="sc">==</span> y)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># bats that matter in this year -&gt; mothers and daughters only</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  bats_y <span class="ot">&lt;-</span> <span class="fu">unique</span>(<span class="fu">c</span>(md_y<span class="sc">$</span>rfid_mom, md_y<span class="sc">$</span>rfid_off))</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  edges_y <span class="ot">&lt;-</span> edges <span class="sc">%&gt;%</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(year <span class="sc">==</span> y) <span class="sc">%&gt;%</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(from <span class="sc">%in%</span> bats_y <span class="sc">|</span> to <span class="sc">%in%</span> bats_y)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># lookup table with roles</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  lookup_y <span class="ot">&lt;-</span> md_y <span class="sc">%&gt;%</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">cols =</span> <span class="fu">c</span>(rfid_mom, rfid_off),</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">names_to =</span> <span class="st">&quot;role&quot;</span>,</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">values_to =</span> <span class="st">&quot;batID&quot;</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(batID, role)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  edges_y <span class="ot">&lt;-</span> edges_y <span class="sc">%&gt;%</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(lookup_y, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;from&quot;</span> <span class="ot">=</span> <span class="st">&quot;batID&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename</span>(<span class="at">from_role =</span> role) <span class="sc">%&gt;%</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(lookup_y, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;to&quot;</span> <span class="ot">=</span> <span class="st">&quot;batID&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename</span>(<span class="at">to_role =</span> role)</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># ordered pairID, to ensure correct matching</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>  make_pairID <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y) {</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ifelse</span>(x <span class="sc">&lt;</span> y, <span class="fu">paste</span>(x, y, <span class="at">sep =</span> <span class="st">&quot;-&quot;</span>), <span class="fu">paste</span>(y, x, <span class="at">sep =</span> <span class="st">&quot;-&quot;</span>))</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>  edges_y <span class="ot">&lt;-</span> edges_y <span class="sc">%&gt;%</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">pairID =</span> <span class="fu">make_pairID</span>(from, to))</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>  <span class="co"># identify true MD pairs for this year</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>  true_MD_y <span class="ot">&lt;-</span> md_y <span class="sc">%&gt;%</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">pairID =</span> <span class="fu">make_pairID</span>(rfid_mom, rfid_off)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(pairID)</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>  edges_y <span class="ot">&lt;-</span> edges_y <span class="sc">%&gt;%</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">pair_type_2 =</span> <span class="fu">case_when</span>(</span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>      <span class="co"># true mother–daughter</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>      pairID <span class="sc">%in%</span> true_MD_y<span class="sc">$</span>pairID <span class="sc">~</span> <span class="st">&quot;mother-daughter&quot;</span>,</span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>      <span class="co"># mother with a non-own juvenile</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>      ((from_role <span class="sc">==</span> <span class="st">&quot;rfid_mom&quot;</span> <span class="sc">&amp;</span> to_role <span class="sc">==</span> <span class="st">&quot;rfid_off&quot;</span>) <span class="sc">|</span></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>        (from_role <span class="sc">==</span> <span class="st">&quot;rfid_off&quot;</span> <span class="sc">&amp;</span> to_role <span class="sc">==</span> <span class="st">&quot;rfid_mom&quot;</span>)</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">~</span> <span class="st">&quot;mother-random-juvenile&quot;</span>,</span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>      <span class="co"># everything else</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">&quot;other&quot;</span></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Run function for both colonies</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(edges_GB2<span class="sc">$</span>year))</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">#for GB2</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>mom_juv_GB2 <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  years,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  make_mom_juv_for_year,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">edges =</span> edges_GB2,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">md_table =</span> mother_daughter_GB2</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>mom_juv_UA <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  years,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  make_mom_juv_for_year,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">edges =</span> edges_UA,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">md_table =</span> mother_daughter_UA</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co">#save datasets</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(mom_juv_GB2, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;saved_matrices&quot;</span>,<span class="st">&quot;GB2&quot;</span>,<span class="st">&quot;mom_juv_GB2.csv&quot;</span>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(mom_juv_UA, <span class="fu">here</span>(<span class="st">&quot;data&quot;</span>,<span class="st">&quot;saved_matrices&quot;</span>,<span class="st">&quot;UA&quot;</span>,<span class="st">&quot;mom_juv_UA.csv&quot;</span>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 
