@@ -1,0 +1,1976 @@
+---
+title: "Master_hypothesis3"
+author: "Flore Michel"
+date: "2025-02-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(igraph)
+library(asnipe)
+library(sna)
+library(assocInd)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(ggplot2)
+library(tidyverse)
+library(viridis)
+library(patchwork)
+library(igraph)
+library(ggraph)
+library(colormap)
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(glmmTMB)
+library(DHARMa)
+library(influence.ME)
+library(MuMIn)
+library(performance)
+library(car)
+library(ggrepel)
+library(ggplot2)
+library(patchwork)      
+library(ggraph)
+library(igraph)
+library(dplyr)
+library(ggsignif)
+#library(lemon)     
+#library(scales)
+```
+
+Load
+```{r }
+edges_GB2<-read.csv(here("data","saved_matrices","GB2","full","full_edges_GB2.csv"),header=TRUE, row.names=NULL,sep=",",check.names = F)
+mother_daughter_GB2<-read.csv(here("data","mother_daughter_GB2.csv"),header=TRUE, row.names=NULL,sep=",",check.names = F)
+```
+
+```{r load the networls, include= FALSE}
+net_G2013<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2013<- as.matrix(net_G2013) 
+net_G2014<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2014 <- as.matrix(net_G2014)
+net_G2015<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2015 <- as.matrix(net_G2015)
+net_G2016<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2016 <- as.matrix(net_G2016)
+net_G2017<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2017 <- as.matrix(net_G2017)
+net_G2018<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2018 <- as.matrix(net_G2018)
+net_G2019<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2019 <- as.matrix(net_G2019)
+net_G2020<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2020 <- as.matrix(net_G2020)
+net_G2021<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2021 <- as.matrix(net_G2021)
+net_G2022<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2022 <- as.matrix(net_G2022)
+net_G2023<-read.csv(here("data","saved_matrices","GB2","full","full_net_G2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2023 <- as.matrix(net_G2023)
+```
+
+```{r}
+g_G2013<- graph_from_adjacency_matrix(net_G2013, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2014<- graph_from_adjacency_matrix(net_G2014, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2015<- graph_from_adjacency_matrix(net_G2015, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2016<- graph_from_adjacency_matrix(net_G2016, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2017<- graph_from_adjacency_matrix(net_G2017, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2018<- graph_from_adjacency_matrix(net_G2018, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2019<- graph_from_adjacency_matrix(net_G2019, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2020<- graph_from_adjacency_matrix(net_G2020, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2021<- graph_from_adjacency_matrix(net_G2021, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2022<- graph_from_adjacency_matrix(net_G2022, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2023<- graph_from_adjacency_matrix(net_G2023, mode = "undirected", weighted = TRUE, diag = FALSE)
+```
+
+# Hypothesis 
+
+*How do these mother-daughter associations influences the network structure?*
+Do mothers that have a lot of daughters over the years are more central/important in the network than others?
+
+#---------- colony GB2
+
+#offspring table
+```{r}
+edges_MD_GB2 <- edges_GB2 %>%
+  filter(pairID %in% mother_daughter_GB2$pairID)
+```
+
+```{r}
+offspring_table_GB2 <- edges_MD_GB2 %>%
+  select(from, to, year, pairID) %>%
+   pivot_longer(cols = c("from", "to"), values_to = "ID") %>%
+   select(ID, year, pairID) %>%
+   distinct()  # no duplicate rows
+
+#then we can add a new column "is mother", to be sure that the individual is the mother in the pair (look in mother-daughter df)
+offspring_table_GB2 <- offspring_table_GB2 %>%
+  left_join(
+    mother_daughter_GB2 %>%
+      select(pairID, rfid_mom) , by = "pairID" )%>%
+      mutate(is_mother = ifelse(ID == rfid_mom, "mother", "daughter")
+  )
+```
+
+Then, we can measure the number of offsprings for each mother
+```{r}
+offspring_counts_GB2 <- offspring_table_GB2 %>%
+  filter(is_mother == "mother") %>% 
+  group_by(ID, year) %>%
+  summarise(total_offspring = n_distinct(pairID, na.rm = TRUE), .groups = "drop")
+
+offspring_table_GB2 <- left_join(offspring_table_GB2, offspring_counts_GB2, by = c("ID", "year"))
+
+offspring_table_GB2$total_offspring[is.na(offspring_table_GB2$total_offspring)] <- 0
+
+offspring_table_GB2 <- offspring_table_GB2 %>%
+  mutate(across(c(ID, pairID), as.character)) 
+#write.csv(offspring_table, "variables_GB2/offspring_table.csv", row.names = FALSE,quote = TRUE)
+```
+
+ADD mother AGE as a control !!!
+```{r}
+mother_df <- read.csv(here("data", "raw_roost_data","mother daughter pairs_2013-2023.csv"),
+                      header = TRUE,
+                      sep    = ";",
+                      check.names = FALSE) %>% 
+  select(Year, Colony, TAG_mom, birth_mom) %>% 
+  #birth as integrer 
+  mutate(Year = as.integer(Year),
+         birth_mom = as.integer(birth_mom)
+  )
+
+#rename some individual in TAG_mom
+mother_df$TAG_mom[mother_df$TAG_mom == "B597=B587"] <- "B587"
+mother_df$TAG_mom[mother_df$TAG_mom == "6C0D=6D0D"] <- "6D0D"
+mother_df$TAG_mom[mother_df$TAG_mom == "07F9=51C3"] <- "07F9"
+mother_df$TAG_mom[mother_df$TAG_mom == "EE00=7C6F"] <- "7C6F"
+mother_df$TAG_mom[mother_df$TAG_mom == "5E-BF3C=A4A4"] <- "5EBF3C"
+mother_df$TAG_mom[mother_df$TAG_mom == "4FCA=7CCA"] <- "4FCA"
+mother_df$TAG_mom[mother_df$TAG_mom == "F50E=9B39=AE33"] <- "F50E"
+mother_df$TAG_mom[mother_df$TAG_mom == "37F2=100F"] <- "100F"
+mother_df$TAG_mom[mother_df$TAG_mom == "DE72=15BF"] <-"15BF"
+
+```
+
+Then, create a df with ALL females age (add the daughters age aswell)
+```{r}
+female_birth_year <- bind_rows(
+  mother_df %>%
+    filter(Colony == "GB2") %>%
+    transmute(
+      ID = as.character(TAG_mom),
+      birth_year = as.integer(birth_mom)
+    ),
+  mother_daughter_GB2 %>%
+    transmute(
+      ID = as.character(rfid_off),
+      birth_year = as.integer(year)
+    )
+) %>%
+  distinct(ID, birth_year)
+```
+
+join to get mother age at each year (Year - birth year),
+```{r}
+offspring_table_GB2 <- offspring_table_GB2 %>%
+  mutate(ID = as.character(ID)) %>%
+  left_join(
+    female_birth_year %>%
+      distinct(ID, birth_year) %>%
+      mutate(
+        ID        = as.character(ID),
+        birth_year = as.integer(birth_year)
+      ) %>%
+      select(ID, birth_year),
+    by = "ID"
+  )
+
+#create mother_age
+offspring_table_GB2 <- offspring_table_GB2 %>%
+  mutate(female_age = year - birth_year)
+
+#put "unkown age" when we don't have the birth year of the mother (only where is_mother is "mother)
+offspring_table_GB2 <- offspring_table_GB2 %>%
+  mutate(unkown_age = ifelse(is_mother == "mother" & is.na(female_age), TRUE, FALSE)
+  )
+```
+Now we can join the info on the offsprings on the edges list (total)
+--> first need to creat ethe node list and not the edge list 
+```{r}
+nodes_GB2 <- edges_GB2 %>%
+  select(year, from, to) %>%
+  pivot_longer(cols = c(from, to), names_to = "role",
+    values_to = "ID"
+  ) %>%
+  select(year, ID) %>%
+  distinct()
+
+nodes_GB2 <- nodes_GB2 %>%
+  left_join(
+    offspring_table_GB2 %>%
+      select(
+        ID, year,
+        is_mother,
+        total_offspring,
+        unkown_age
+      ),
+    by = c("ID", "year")
+  ) %>%
+  mutate(
+    is_mother = if_else(is.na(is_mother), "non_mother", is_mother),
+    total_offspring = replace_na(total_offspring, 0),
+    unkown_age = replace_na(unkown_age, 0L)
+  )
+
+nodes_GB2 <- nodes_GB2 %>%
+  left_join(female_birth_year, by = "ID") %>%
+  mutate(
+    female_age = year - birth_year
+  )
+
+nodes_GB2 <- nodes_GB2 %>%
+  distinct(
+    year, ID,
+    .keep_all = TRUE
+  )
+
+nodes_GB2 <- nodes_GB2 %>%
+  mutate(unknown_age = ifelse(is.na(birth_year), TRUE, FALSE)) %>% 
+  select(-unkown_age)
+```
+
+
+# Measure all three metrics and put in the same table
+#metrics
+```{r}
+network_list_GB2 <- list(
+  "2013" = net_G2013, "2014" = net_G2014, "2015" = net_G2015,
+  "2016" = net_G2016, "2017" = net_G2017, "2018" = net_G2018,
+  "2019" = net_G2019, "2020" = net_G2020, "2021" = net_G2021,
+  "2022" = net_G2022, "2023" = net_G2023
+)
+# each year, build the graph once and compute all three metrics
+centrality_list_GB2 <- lapply(names(network_list_GB2), function(year_char) {
+
+  year_int <- as.integer(year_char)
+  
+  # Build the undirected, weighted igraph for that year
+  mat <- network_list_GB2[[year_char]]
+  g    <- graph_from_adjacency_matrix(
+    mat,
+    mode     = "undirected",
+    weighted = TRUE,
+    diag     = FALSE
+  )
+  
+  # closeness 
+  E(g)$dist <- 1 / E(g)$weight
+  
+  clos_vals <- igraph::closeness(
+  g,
+  vids = V(g),
+  weights = E(g)$dist,
+  normalized = TRUE
+)
+  
+  #eigenvector centrality
+  eig_vals <- igraph::eigen_centrality(
+    g,
+    directed = FALSE,
+    weights  = E(g)$weight
+  )$vector
+  
+  #Strength (weighted degre)
+  str_vals <- igraph::strength(
+    g,
+    v       = V(g),
+    mode    = "all",
+    weights = E(g)$weight
+  )
+  
+  # create df
+  data.frame(
+    ID            = names(clos_vals),
+    year          = year_int,
+    closeness     = as.numeric(clos_vals),
+    eigen_cent    = as.numeric(eig_vals),
+    strength      = as.numeric(str_vals),
+    stringsAsFactors = FALSE
+  )
+})
+
+centrality_metrics_GB2 <- bind_rows(centrality_list_GB2)
+
+#merge
+centrality_GB2 <- nodes_GB2 %>%
+  mutate(
+    year = as.integer(year),
+    ID   = as.character(ID)
+  ) %>%
+
+  left_join(
+    centrality_metrics_GB2 %>%
+      mutate(
+        year = as.integer(year),
+        ID   = as.character(ID)
+      ),
+    by = c("ID", "year")
+  )
+
+#add colon ysize
+colony_size_GB2 <- read.csv(here("data","saved_matrices","GB2","colony_size_df.csv"),
+  header      = TRUE,
+  sep         = ",",
+  check.names = FALSE
+) %>%
+  mutate(year = as.integer(year))
+
+centrality_GB2 <- centrality_GB2 %>%
+  left_join(colony_size_GB2, by = "year")
+
+centrality_GB2$total_offspring <- as.numeric(centrality_GB2$total_offspring)
+centrality_GB2$female_age <- as.numeric(centrality_GB2$female_age)
+
+#recalculate female age
+centrality_GB2 <- centrality_GB2 %>% 
+  mutate(female_age = year - birth_year)
+
+#add "offspring cat", categorical variable with 3 categories: 0, 1, 2+ (2 or more)
+centrality_GB2 <- centrality_GB2 %>%
+  mutate(offspring_cat = case_when(
+    total_offspring == 0 ~ "0",
+    total_offspring == 1 ~ "1",
+    total_offspring == 2 ~ "2",
+    total_offspring >= 3 ~ "3+"
+  ))
+
+centrality_GB2 <- centrality_GB2 %>%
+  group_by(year) %>%
+  mutate(
+    strength_z   = as.numeric(scale(strength)),
+    eigen_z      = as.numeric(scale(eigen_cent)),
+    closeness_z  = as.numeric(scale(closeness))
+  ) %>%
+  ungroup()
+
+```
+Check correlation between the three metrics
+```{r}
+cor(centrality_GB2[, c("strength","eigen_cent","closeness")],
+    use="complete.obs")
+
+#and scaled metrics too 
+cor(centrality_GB2[, c("strength_z","eigen_z","closeness_z")],
+    use="complete.obs")
+```
+
+#Analysis
+### first check the distribution
+
+```{r}
+ggplot(centrality_GB2, aes(strength)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~year)
+
+ggplot(centrality_GB2, aes(eigen_cent)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~year)
+
+ggplot(centrality_GB2, aes(closeness)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~year)
+```
+
+
+```{r}
+#check only 1 year
+centrality_GB2_2013<- centrality_GB2 %>%
+  filter(year == 2013)
+
+#model to investigate eigenvector centrality with number of offsrping, while controling for mother_age 
+m <- lm(eigen_cent ~ total_offspring + female_age + unknown_age, data = centrality_GB2_2013)
+summary(m)
+
+plot(m)
+
+m2 <- lm(eigen_cent ~ offspring_cat + female_age, data = centrality_GB2_2013)
+summary(m2)
+
+plot(m2)
+```
+
+
+```{r}
+coef(m)[c("total_offspring","female_age")]
+#check final model
+simulationOutput_eigen_GB2 <- simulateResiduals(fittedModel = m, n = 1000)
+plot(simulationOutput_eigen_GB2)
+testUniformity(simulationOutput_eigen_GB2)   # KS test for uniformity
+testDispersion(simulationOutput_eigen_GB2)     # Test for over/under dispersion
+testZeroInflation(simulationOutput_eigen_GB2) 
+
+
+par(mfrow = c(1,2))
+plot(m, which = 1, main = "Residuals")
+plot(m, which = 2, main = "QQ")
+
+df_cor <- centrality_GB2 %>%
+  filter(total_offspring > 0) %>%
+  filter(!is.na(female_age), !is.na(total_offspring))
+
+cor(df_cor$female_age, df_cor$total_offspring)
+```
+
+#### distribution
+```{r}
+hist(centrality_GB2$eigen_cent); range(centrality_GB2$eigen_cent) #between 0 and 1 --> need to change the model
+hist(centrality_GB2$closeness); range(centrality_GB2$closeness)
+hist(centrality_GB2$strength); range(centrality_GB2$strength)
+
+#of scaled metrics 
+hist(centrality_GB2$eigen_z); range(centrality_GB2$eigen_z) #between 0 and 1 --> need to change the model
+hist(centrality_GB2$closeness_z); range(centrality_GB2$closeness_z)
+hist(centrality_GB2$strength_z); range(centrality_GB2$strength_z)
+```
+
+#Permutations 
+```{r perm function for all metrics}
+run_permutation_by_year <- function(df,
+                                    years  = 2013:2023,
+                                    n_perm = 1000) {
+
+  metrics <- c("eigen_cent", "closeness", "strength")
+
+  out_list <- vector("list", length(years) * length(metrics))
+  idx <- 1
+
+  for (yr in years) {
+
+    df_model <- df %>%
+      dplyr::filter(year == yr)
+
+    for (m in metrics) {
+
+      # observed model
+      form <- as.formula(
+        paste(m, "~ total_offspring + female_age")
+      )
+
+      mod_obs <- lm(form, data = df_model)
+
+      beta_obs_off <- as.numeric(coef(mod_obs)["total_offspring"])
+      beta_obs_age <- as.numeric(coef(mod_obs)["female_age"])
+
+      # permutation storage
+      beta_perm_off <- numeric(n_perm)
+      beta_perm_age <- numeric(n_perm)
+
+      for (i in seq_len(n_perm)) {
+
+        perm_df <- df_model %>%
+          dplyr::mutate(
+            total_offspring = sample(total_offspring)
+          )
+
+        mod_p <- lm(form, data = perm_df)
+
+        beta_perm_off[i] <- as.numeric(coef(mod_p)["total_offspring"])
+        beta_perm_age[i] <- as.numeric(coef(mod_p)["female_age"])
+      }
+
+      # permutation p-value (offspring only)
+      p_perm_off <- mean(abs(beta_perm_off) >= abs(beta_obs_off))
+      p_perm_age <- mean(abs(beta_perm_age) >= abs(beta_obs_age))
+
+      out_list[[idx]] <- data.frame(
+        year = yr,
+        metric = m,
+        beta_offspring = beta_obs_off,
+        p_perm_off = p_perm_off,
+        beta_age = beta_obs_age,
+        p_perm_age = p_perm_age
+      )
+
+      idx <- idx + 1
+    }
+  }
+
+  dplyr::bind_rows(out_list)
+}
+```
+
+```{r}
+centrality_perm_GB2 <-run_permutation_by_year(
+  df = centrality_GB2,
+  years = 2013:2023,
+  n_perm = 1000
+)
+
+centrality_perm_GB2 <- centrality_perm_GB2 %>%
+  mutate(
+    metric = dplyr::case_when(
+      metric == "eigen_cent" ~ "Eigenvector",
+      metric == "closeness"  ~ "Closeness",
+      metric == "strength"   ~ "Strength",
+      TRUE ~ metric
+    )) %>% 
+      mutate(beta_offspring = round(beta_offspring,3)) %>% 
+  mutate(beta_age = round(beta_age, 3)) 
+
+centrality_table_wide <- centrality_perm_GB2 %>%
+  tidyr::pivot_wider(
+    id_cols = year,
+    names_from = metric,
+    values_from = c(beta_offspring, p_perm_off, beta_age, p_perm_age),
+    names_glue = "{metric}_{.value}"
+  ) %>%
+  dplyr::arrange(year)
+
+centrality_table_wide <- centrality_table_wide %>% 
+  select(Eigenvector_beta_offspring,Eigenvector_p_perm_off,Eigenvector_beta_age,Eigenvector_p_perm_age,
+          Closeness_beta_offspring, Closeness_p_perm_off, Closeness_beta_age, Closeness_p_perm_age,
+         Strength_beta_offspring,Strength_p_perm_off,Strength_beta_age,Strength_p_perm_age)
+
+
+centrality_table_wide
+
+write.csv(centrality_table_wide,here("results","tables","centrality_perm_GB2.csv"))
+```
+
+
+### Visualization
+```{r}
+df14 <- centrality_GB2 %>%                   
+  filter(year == 2014) %>% 
+  mutate(
+    d_cat = factor(pmin(total_offspring, 5),
+                   levels = 0:5,
+                   labels = c("0","1","2","3","4","5+"))
+  )
+
+V(g_G2014)$d_cat <- df14$d_cat[match(V(g_G2014)$name, df14$ID)]
+
+
+pal <- pal <- c("#e8f1ff", "#c2d8ff", "#9cc0ff", "#729aff", "#3f6cff", "#103fbc") 
+
+centrality_G2014<-igraph::eigen_centrality(g_G2014)
+```
+
+```{r}
+# compute eigenvector centrality
+eig_cent <- igraph::eigen_centrality(g_G2023, weights = E(g_G2023)$weight)$vector
+
+# store it as a node attribute (recommended)
+V(g_G2023)$eigen_cent <- eig_cent
+
+# daughters category (cap at 5+)
+V(g_G2023)$d_cat <- factor(
+  pmin(V(g_G2023)$total_offspring, 5),
+  levels = 0:5,
+  labels = c("0", "1", "2", "3", "4", "5+")
+)
+
+# simple centrality-based network plot
+ggraph(g_G2023,
+       layout = "centrality",
+       centrality = eig_cent) +
+  geom_edge_link(
+    colour = "grey80",
+    width = 0.4,
+    alpha = 0.6
+  ) +
+  geom_node_point(
+    aes(fill = d_cat),
+    shape = 21,
+    size = 4,
+    colour = "grey30"
+  ) +
+  scale_fill_manual(
+    values = pal,
+    name = "Number of daughters"
+  ) +
+  geom_node_text(
+    aes(label = name),
+    repel = TRUE,
+    size = 2.5
+  ) +
+  theme_void() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  ) +
+  ggtitle("Network 2023")
+
+plot_network_centrality <- function(g,
+                                    title = NULL,
+                                    palette = c("#e8f1ff", "#c2d8ff", "#9cc0ff",
+                                                "#729aff", "#3f6cff", "#103fbc")) {
+
+  # cap daughters at 5+
+  V(g)$d_cat <- factor(
+    pmin(V(g)$total_offspring, 5),
+    levels = 0:5,
+    labels = c("0", "1", "2", "3", "4", "5+")
+  )
+
+  # layout that pulls central nodes to the middle
+  lay <- ggraph::create_layout(
+    g,
+    layout = "stress",
+    weights = E(g)$weight
+  )
+
+  ggraph(lay) +
+    geom_edge_link(
+      colour = "grey80",
+      width = 0.3,
+      alpha = 0.6
+    ) +
+    geom_node_point(
+      aes(
+        fill = d_cat,
+        size = eigen_cent        # centrality → size
+      ),
+      shape = 21,
+      colour = "grey30",
+      stroke = 0.3
+    ) +
+    scale_fill_manual(
+      values = palette,
+      name = "Number of daughters"
+    ) +
+    scale_size_continuous(
+      range = c(2.5, 7),
+      guide = "none"
+    ) +
+    coord_equal() +
+    theme_void() +
+    theme(
+      legend.position = "right",
+      plot.title = element_text(
+        size = 14,
+        face = "bold",
+        hjust = 0.5
+      )
+    ) +
+    labs(title = title)
+}
+```
+
+
+#CATEGORIC analysis --> not enough mothers with 3+ daughters
+```{r}
+centrality_GB2 <- centrality_GB2 %>%
+  dplyr::mutate(
+    offspring_cat = dplyr::case_when(
+      total_offspring == 0 ~ "0",
+      total_offspring == 1 ~ "1",
+      total_offspring == 2 ~ "2",
+      total_offspring >= 3 ~ "3"
+    ),
+    offspring_cat = factor(
+      offspring_cat,
+      levels = c("0", "1", "2","3")
+    )
+  )
+```
+
+#Permutations 
+```{r perm function - categorical}
+run_permutation_cat <- function(df,
+                                years  = 2013:2023,
+                                n_perm = 1000) {
+
+  metrics <- c("eigen_cent", "closeness", "strength")
+  out_list <- list()
+  idx <- 1
+
+  for (yr in years) {
+
+    df_year <- df %>%
+      dplyr::filter(year == yr) %>%
+      dplyr::filter(
+        !is.na(offspring_cat),
+        !is.na(female_age)
+      )
+
+    # skip empty or non-identifiable years
+    if (nrow(df_year) < 5 ||
+        dplyr::n_distinct(df_year$offspring_cat) < 2) {
+      next
+    }
+
+    for (m in metrics) {
+
+      form <- as.formula(
+        paste(m, "~ offspring_cat + female_age + unknown_age")
+      )
+
+      # observed model
+      mod_obs <- lm(form, data = df_year)
+
+      off_levels <- grep("^offspring_cat", names(coef(mod_obs)), value = TRUE)
+
+      beta_obs_off <- coef(mod_obs)[off_levels]
+      beta_obs_age <- as.numeric(coef(mod_obs)["female_age"])
+
+      # permutation storage
+      beta_perm_off <- matrix(
+        NA,
+        nrow = n_perm,
+        ncol = length(off_levels),
+        dimnames = list(NULL, off_levels)
+      )
+
+      beta_perm_age <- numeric(n_perm)
+
+      for (i in seq_len(n_perm)) {
+
+        perm_df <- df_year %>%
+          dplyr::mutate(
+            offspring_cat = sample(offspring_cat)
+          )
+
+        mod_p <- lm(form, data = perm_df)
+
+        beta_perm_off[i, ] <- coef(mod_p)[off_levels]
+        beta_perm_age[i]   <- as.numeric(coef(mod_p)["female_age"])
+      }
+
+      # permutation p-values (one per contrast)
+      p_perm_off <- sapply(seq_along(off_levels), function(j) {
+        mean(abs(beta_perm_off[, j]) >= abs(beta_obs_off[j]))
+      })
+
+      # optional diagnostic p-value for age
+      p_perm_age <- mean(abs(beta_perm_age) >= abs(beta_obs_age))
+
+      # store results: ONE ROW PER CONTRAST
+      for (j in seq_along(off_levels)) {
+
+        out_list[[idx]] <- data.frame(
+          year        = yr,
+          Metric      = m,
+          Contrast    = off_levels[j],
+          beta_off    = beta_obs_off[j],
+          p_perm_off  = p_perm_off[j],
+          beta_age    = beta_obs_age,
+          p_perm_age  = p_perm_age,
+          stringsAsFactors = FALSE
+        )
+
+        idx <- idx + 1
+      }
+    }
+  }
+
+  dplyr::bind_rows(out_list)
+}
+```
+
+
+```{r perm function for all metrics}
+centrality_cat_perm_GB2 <-run_permutation_cat(
+  df = centrality_GB2,
+  years = 2013:2023,
+  n_perm = 1000
+)
+centrality_cat_perm_GB2
+
+```
+
+```{r}
+centrality_cat_perm_GB2 <- centrality_cat_perm_GB2 %>%
+  mutate(
+    Metric = dplyr::case_when(
+      Metric == "eigen_cent" ~ "Eigenvector",
+      Metric == "closeness"  ~ "Closeness",
+      Metric == "strength"   ~ "Strength",
+      TRUE ~ Metric
+    )) %>% 
+      mutate(beta_off = round(beta_off,3)) %>% 
+  mutate(beta_age = round(beta_age, 3)) 
+
+centrality_table_wide_cat_GB2 <- centrality_cat_perm_GB2 %>%
+  tidyr::pivot_wider(
+    id_cols = c(year, Contrast),
+    names_from = Metric,
+    values_from = c(beta_off, p_perm_off),
+    names_glue = "{Metric}_{.value}"
+  ) %>%
+  dplyr::arrange(year, Contrast)
+
+centrality_table_wide_cat_GB2 <- centrality_table_wide_cat_GB2 %>%
+  select(
+    year,
+    Contrast,
+
+    Eigenvector_beta_off,
+    Eigenvector_p_perm_off,
+
+    Closeness_beta_off,
+    Closeness_p_perm_off,
+
+    Strength_beta_off,
+    Strength_p_perm_off
+  )
+
+
+centrality_table_wide_cat_GB2
+write.csv(centrality_table_wide_cat_GB2,here("results","tables","centrality_perm_GB2_categorical.csv"))
+```
+
+#////////////
+#ALL years analysis 
+######numerical
+```{r}
+run_permutation_pooled_numeric_GB2 <- function(df,
+                                               responses = c("strength_z",
+                                                             "eigen_z",
+                                                             "closeness_z"),
+                                               n_perm = 1000) {
+
+  results_list <- list()
+  null_list <- list()
+
+  for (resp in responses) {
+
+    form <- as.formula(
+      paste(resp,
+            "~ total_offspring + female_age + colony_size + (1 | ID)")
+    )
+
+    # observed model
+    mod_obs <- lmer(form, data = df, REML = FALSE)
+
+    beta_obs <- fixef(mod_obs)["total_offspring"]
+
+    beta_perm <- numeric(n_perm)
+
+    for (i in seq_len(n_perm)) {
+
+      perm_df <- df %>%
+        group_by(year) %>%
+        mutate(total_offspring = sample(total_offspring)) %>%
+        ungroup()
+
+      mod_p <- lmer(form, data = perm_df, REML = FALSE)
+
+      beta_perm[i] <- fixef(mod_p)["total_offspring"]
+    }
+
+    p_perm <- mean(abs(beta_perm) >= abs(beta_obs))
+    
+        # ---- store short summary ----
+    results_list[[resp]] <- data.frame(
+      metric = resp,
+      beta_observed = beta_obs,
+      beta_perm = mean(abs(beta_perm)),
+      p_perm = p_perm
+    )
+
+    # ---- store full null distribution ----
+    null_list[[resp]] <- beta_perm
+  }
+
+  return(list(
+    summary = bind_rows(results_list),
+    null_dist = null_list
+  ))
+}
+```
+
+run 
+```{r}
+centrality_perm_pooled_numeric_GB2 <- run_permutation_pooled_numeric_GB2(
+  df = centrality_GB2,
+  responses = c("strength_z", "eigen_z", "closeness_z"),
+  n_perm = 1000
+)
+```
+
+Results
+```{r}
+centrality_perm_pooled_numeric_GB2$null_dist
+
+centrality_result_pooled_numeric_GB2 <- centrality_perm_pooled_numeric_GB2$summary %>%
+  mutate(metric = case_when(
+    metric == "strength_z"  ~ "Strength",
+    metric == "eigen_z"     ~ "Eigenvector",
+    metric == "closeness_z" ~ "Closeness"
+  ))
+
+centrality_result_pooled_numeric_GB2
+p.adjust(centrality_result_pooled_numeric_GB2$p_perm, method = "fdr")
+```
+
+### hist plot
+histogram of the distribution of the permuted coefficients, with a vertical line for the observed coefficient, for each metric
+```{r}
+null_df <- bind_rows(
+  lapply(names(centrality_perm_pooled_numeric_GB2$null_dist), function(m) {
+    data.frame(
+      metric = m,
+      beta_perm = centrality_perm_pooled_numeric_GB2$null_dist[[m]]
+    )
+  })
+)
+
+null_df <- null_df %>%
+  mutate(metric = case_when(
+    metric == "strength_z"  ~ "Strength",
+    metric == "eigen_z"     ~ "Eigenvector",
+    metric == "closeness_z" ~ "Closeness"
+  ))
+
+obs_df <- centrality_perm_pooled_numeric_GB2$summary %>%
+  mutate(metric = case_when(
+    metric == "strength_z"  ~ "Strength",
+    metric == "eigen_z"     ~ "Eigenvector",
+    metric == "closeness_z" ~ "Closeness"
+  ))
+```
+plot
+```{r}
+hist <- ggplot(null_df, aes(x = beta_perm)) +
+  geom_histogram(aes(y = ..density..),
+                 bins = 30,
+                 fill = "grey80",
+                 color = "black",
+                 linewidth = 0.3) +
+  geom_vline(data = obs_df,
+             aes(xintercept = beta_observed),
+             color = "red",
+             linewidth = 1.2) +
+  geom_text(data = obs_df,
+            aes(x = -0.1,
+                y = 8.5,
+                label = paste0("p = ", round(p_perm, 3))),
+            color = "red",
+            size = 4) +
+  facet_wrap(~ metric, scales = "free") +
+  labs(x = "Permuted effect",
+       y = "Density") +
+  theme_classic(base_size = 13) +
+  theme(
+    strip.background = element_blank(),      # removes beige box
+    strip.text = element_text(face = "bold", size = 13),
+    panel.spacing = unit(1.2, "lines"),
+    plot.title = element_text(face = "bold", size = 14)
+  )
+hist
+
+ggsave(here("results","figures","Q3_perm_distribution.png"), plot = hist,
+  width = 8,
+  height = 3
+)
+```
+
+### perm function for categorical variable - al
+```{r}
+run_permutation_pooled_multi <- function(df,
+                                         responses = c("strength_z",
+                                                       "eigen_z",
+                                                       "closeness_z"),
+                                         n_perm = 1000) {
+
+  results_list <- list()
+
+  for (resp in responses) {
+
+    form <- as.formula(
+      paste(resp,
+            "~ offspring_cat + female_age + colony_size + (1 | ID)")
+    )
+
+    # observed model
+    mod_obs <- lmer(form, data = df, REML = FALSE)
+
+    beta_obs <- fixef(mod_obs)[grep("offspring_cat",
+                                    names(fixef(mod_obs)))]
+
+    beta_perm <- matrix(NA, n_perm, length(beta_obs))
+    colnames(beta_perm) <- names(beta_obs)
+
+    for (i in seq_len(n_perm)) {
+
+      perm_df <- df %>%
+        group_by(year) %>%
+        mutate(offspring_cat = sample(offspring_cat)) %>%
+        ungroup()
+
+      mod_p <- lmer(form, data = perm_df, REML = FALSE)
+
+      beta_perm[i, ] <- fixef(mod_p)[names(beta_obs)]
+    }
+
+    p_perm <- colMeans(abs(beta_perm) >= abs(beta_obs))
+
+    res_df <- data.frame(
+      metric = resp,
+      coefficient = names(beta_obs),
+      beta_observed = beta_obs,
+      p_perm = p_perm
+    )
+
+    results_list[[resp]] <- res_df
+  }
+
+  bind_rows(results_list)
+}
+```
+ run it 
+```{r}
+centrality_perm_pooled_GB2 <- run_permutation_pooled_multi(
+  df = centrality_GB2,
+  responses = c("strength_z", "eigen_z", "closeness_z"),
+  n_perm = 100
+)
+```
+
+```{r}
+centrality_perm_pooled_GB2 <- centrality_perm_pooled_GB2 %>%
+  mutate(metric = case_when(
+    metric == "strength_z"  ~ "Strength",
+    metric == "eigen_z"     ~ "Eigenvector",
+    metric == "closeness_z" ~ "Closeness"
+  ))
+
+centrality_perm_pooled_GB2
+```
+
+
+#----------- UA
+Load
+```{r }
+edges_UA<-read.csv(here("data","saved_matrices","UA","full","full_edges_UA.csv"),header=TRUE, row.names=NULL,sep=",",check.names = F)
+mother_daughter_UA<-read.csv(here("data","mother_daughter_UA.csv"),header=TRUE, row.names=NULL,sep=",",check.names = F)
+
+edges_UA <- edges_UA %>%
+  mutate(
+    pairID = ifelse(
+      from < to,
+      paste(from, to, sep = "-"),
+      paste(to, from, sep = "-")
+    )
+  )
+```
+
+```{r load the networls, include= FALSE}
+GBI_U2013 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2013<-get_network(GBI_U2013,data_format = "GBI",association_index = "SRI")
+GBI_U2014 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2014<-get_network(GBI_U2014,data_format = "GBI",association_index = "SRI")
+GBI_U2015 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2015<-get_network(GBI_U2015,data_format = "GBI",association_index = "SRI")
+GBI_U2016 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2016<-get_network(GBI_U2016,data_format = "GBI",association_index = "SRI")
+GBI_U2017 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2017<-get_network(GBI_U2017,data_format = "GBI",association_index = "SRI")
+GBI_U2018 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2018<-get_network(GBI_U2018,data_format = "GBI",association_index = "SRI")
+GBI_U2019 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2019<-get_network(GBI_U2019,data_format = "GBI",association_index = "SRI")
+GBI_U2020 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2020<-get_network(GBI_U2020,data_format = "GBI",association_index = "SRI")
+GBI_U2021 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2021<-get_network(GBI_U2021,data_format = "GBI",association_index = "SRI")
+GBI_U2022 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2022<-get_network(GBI_U2022,data_format = "GBI",association_index = "SRI")
+GBI_U2023 <- read.csv(here("data","saved_matrices","UA","full","fullGBI_U2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);
+net_U2023<-get_network(GBI_U2023,data_format = "GBI",association_index = "SRI")
+```
+
+```{r}
+g_U2015<- graph_from_adjacency_matrix(net_U2015, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2014<- graph_from_adjacency_matrix(net_U2014, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2015<- graph_from_adjacency_matrix(net_U2015, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2016<- graph_from_adjacency_matrix(net_U2016, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2017<- graph_from_adjacency_matrix(net_U2017, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2018<- graph_from_adjacency_matrix(net_U2018, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2019<- graph_from_adjacency_matrix(net_U2019, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2020<- graph_from_adjacency_matrix(net_U2020, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2021<- graph_from_adjacency_matrix(net_U2021, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2022<- graph_from_adjacency_matrix(net_U2022, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2023<- graph_from_adjacency_matrix(net_U2023, mode = "undirected", weighted = TRUE, diag = FALSE)
+```
+
+#offspring table
+```{r}
+edges_MD_UA <- edges_UA %>%
+  filter(pairID %in% mother_daughter_UA$pairID)
+```
+
+```{r}
+offspring_table_UA <- edges_MD_UA %>%
+  select(from, to, year, pairID) %>%
+   pivot_longer(cols = c("from", "to"), values_to = "ID") %>%
+   select(ID, year, pairID) %>%
+   distinct()  # no duplicate rows
+
+#then we can add a new column "is mother", to be sure that the individual is the mother in the pair (look in mother-daughter df)
+offspring_table_UA <- offspring_table_UA %>%
+  left_join(
+    mother_daughter_UA %>%
+      select(pairID, rfid_mom) , by = "pairID" )%>%
+      mutate(is_mother = ifelse(ID == rfid_mom, "mother", "daughter")
+  )
+```
+
+Then, we can measure the number of offsprings for each mother
+```{r}
+offspring_counts_UA <- offspring_table_UA %>%
+  filter(is_mother == "mother") %>% 
+  group_by(ID, year) %>%
+  summarise(total_offspring = n_distinct(pairID, na.rm = TRUE), .groups = "drop")
+
+offspring_table_UA <- left_join(offspring_table_UA, offspring_counts_UA, by = c("ID", "year"))
+
+offspring_table_UA$total_offspring[is.na(offspring_table_UA$total_offspring)] <- 0
+
+offspring_table_UA <- offspring_table_UA %>%
+  mutate(across(c(ID, pairID), as.character)) 
+#write.csv(offspring_table, "variables_UA/offspring_table.csv", row.names = FALSE,quote = TRUE)
+```
+
+ADD mother AGE as a control !!!
+Then, create a df with ALL females age (add the daughters age aswell)
+```{r}
+female_birth_year_UA <- bind_rows(
+  mother_df %>%
+    filter(Colony == "UA") %>%
+    transmute(
+      ID = as.character(TAG_mom),
+      birth_year = as.integer(birth_mom)
+    ),
+  mother_daughter_UA %>%
+    transmute(
+      ID = as.character(rfid_off),
+      birth_year = as.integer(year)
+    )
+) %>%
+  distinct(ID, birth_year)
+```
+
+join to get mother age at each year (Year - birth year),
+```{r}
+offspring_table_UA <- offspring_table_UA %>%
+  mutate(ID = as.character(ID)) %>%
+  left_join(
+    mother_df %>%
+      filter(Colony == "UA") %>%
+      distinct(TAG_mom, birth_mom) %>%
+      mutate(
+        ID        = as.character(TAG_mom),
+        birth_mom = as.integer(birth_mom)
+      ) %>%
+      select(ID, birth_mom),
+    by = "ID"
+  )
+
+offspring_table_UA <- offspring_table_UA %>%
+  mutate(unkown_age = ifelse(is_mother == "mother" & is.na(birth_mom), TRUE, FALSE)  )
+```
+
+Now we can join the info on the offsprings on the edges list (total)
+--> first need to creat ethe node list and not the edge list 
+```{r}
+nodes_UA <- edges_UA %>%
+  select(year, from, to) %>%
+  pivot_longer(cols = c(from, to), names_to = "role",
+    values_to = "ID"
+  ) %>%
+  select(year, ID) %>%
+  distinct()
+
+nodes_UA <- nodes_UA %>%
+  left_join(
+    offspring_table_UA %>%
+      select(
+        ID, year,
+        is_mother,
+        total_offspring,
+        unkown_age
+      ),
+    by = c("ID", "year")
+  ) %>%
+  mutate(
+    is_mother = if_else(is.na(is_mother), "non_mother", is_mother),
+    total_offspring = replace_na(total_offspring, 0),
+    unkown_age = replace_na(unkown_age, 0L)
+  )
+
+nodes_UA <- nodes_UA %>%
+  left_join(female_birth_year_UA, by = "ID") %>%
+  mutate(
+    female_age = year - birth_year
+  )
+
+nodes_UA <- nodes_UA %>%
+  distinct(
+    year, ID,
+    .keep_all = TRUE
+  )
+
+nodes_UA <- nodes_UA %>%
+  mutate(unknown_age = ifelse(is.na(birth_year), TRUE, FALSE)) %>% 
+  select(-unkown_age)
+```
+
+
+# Measure all three metrics and put in the same table
+#metrics
+```{r}
+network_list_UA <- list(
+  "2013" = net_U2013, "2014" = net_U2014, "2015" = net_U2015,
+  "2016" = net_U2016, "2017" = net_U2017, "2018" = net_U2018,
+  "2019" = net_U2019, "2020" = net_U2020, "2021" = net_U2021,
+  "2022" = net_U2022, "2023" = net_U2023
+)
+# each year, build the graph once and compute all three metrics
+centrality_list_UA <- lapply(names(network_list_UA), function(year_char) {
+
+  year_int <- as.integer(year_char)
+  
+  # Build the undirected, weighted igraph for that year
+  mat <- network_list_UA[[year_char]]
+  g    <- graph_from_adjacency_matrix(
+    mat,
+    mode     = "undirected",
+    weighted = TRUE,
+    diag     = FALSE
+  )
+  
+  # closeness 
+  E(g)$dist <- 1 / E(g)$weight
+  
+  clos_vals <- igraph::closeness(
+  g,
+  vids = V(g),
+  weights = E(g)$dist,
+  normalized = TRUE
+)
+  
+  #eigenvector centrality
+  eig_vals <- igraph::eigen_centrality(
+    g,
+    directed = FALSE,
+    weights  = E(g)$weight
+  )$vector
+  
+  #Strength (weighted degre)
+  str_vals <- igraph::strength(
+    g,
+    v       = V(g),
+    mode    = "all",
+    weights = E(g)$weight
+  )
+  
+  # create df
+  data.frame(
+    ID            = names(clos_vals),
+    year          = year_int,
+    closeness     = as.numeric(clos_vals),
+    eigen_cent    = as.numeric(eig_vals),
+    strength      = as.numeric(str_vals),
+    stringsAsFactors = FALSE
+  )
+})
+
+centrality_metrics_UA <- bind_rows(centrality_list_UA)
+
+#merge
+centrality_UA <- nodes_UA %>%
+  mutate(
+    year = as.integer(year),
+    ID   = as.character(ID)
+  ) %>%
+
+  left_join(
+    centrality_metrics_UA %>%
+      mutate(
+        year = as.integer(year),
+        ID   = as.character(ID)
+      ),
+    by = c("ID", "year")
+  )
+
+#add colon ysize
+colony_size_UA <- read.csv(here("data","saved_matrices","UA","colony_size_UA.csv"),
+  header      = TRUE,
+  sep         = ",",
+  check.names = FALSE
+) %>%
+  mutate(year = as.integer(year))
+
+centrality_UA <- centrality_UA %>%
+  left_join(colony_size_UA, by = "year")
+
+centrality_UA <- centrality_UA %>%
+  group_by(year) %>%
+  mutate(
+    strength_z   = as.numeric(scale(strength)),
+    eigen_z      = as.numeric(scale(eigen_cent)),
+    closeness_z  = as.numeric(scale(closeness))
+  ) %>%
+  ungroup()
+
+```
+
+# *Analysis* 
+### first to check
+
+```{r}
+#check only 1 year
+centrality_UA_2015<- centrality_UA %>%
+  filter(year == 2015)
+
+#model to investigate eigenvector centrality with number of offsrping, while controling for mother_age 
+m <- lm(eigen_cent ~ total_offspring + female_age, data = centrality_UA_2015)
+summary(m)
+
+coef(m)[c("total_offspring","female_age")]
+#check final model
+simulationOutput_eigen_UA <- simulateResiduals(fittedModel = m, n = 1000)
+plot(simulationOutput_eigen_UA)
+testUniformity(simulationOutput_eigen_UA)   # KS test for uniformity
+testDispersion(simulationOutput_eigen_UA)     # Test for over/under dispersion
+testZeroInflation(simulationOutput_eigen_UA) 
+
+
+par(mfrow = c(1,2))
+plot(m, which = 1, main = "Residuals")
+plot(m, which = 2, main = "QQ")
+```
+Check all years combined
+```{r}
+m_allyears<- lm(eigen_z ~ total_offspring + female_age + colony_size, data = centrality_UA)
+summary(m_allyears)
+
+simulationOutput_eigen_allyears <- simulateResiduals(fittedModel = m_allyears, n = 1000)
+plot(simulationOutput_eigen_allyears)
+```
+
+
+#permutation
+```{r}
+centrality_perm_UA <-run_permutation_by_year(
+  df = centrality_UA,
+  years = 2013:2023,
+  n_perm = 1000
+)
+centrality_perm_UA
+```
+
+```{r}
+centrality_perm_UA <- centrality_perm_UA %>%
+  mutate(
+    metric = dplyr::case_when(
+      metric == "eigen_cent" ~ "Eigenvector",
+      metric == "closeness"  ~ "Closeness",
+      metric == "strength"   ~ "Strength",
+      TRUE ~ metric
+    )) %>% 
+      mutate(beta_offspring = round(beta_offspring,3)) %>% 
+  mutate(beta_age = round(beta_age, 3)) 
+
+centrality_table_wide <- centrality_perm_UA %>%
+  tidyr::pivot_wider(
+    id_cols = year,
+    names_from = metric,
+    values_from = c(beta_offspring, p_perm_off, beta_age, p_perm_age),
+    names_glue = "{metric}_{.value}"
+  ) %>%
+  dplyr::arrange(year)
+
+centrality_table_wide <- centrality_table_wide %>% 
+  select(year, Eigenvector_beta_offspring,Eigenvector_p_perm_off,Eigenvector_beta_age,Eigenvector_p_perm_age,
+          Closeness_beta_offspring, Closeness_p_perm_off, Closeness_beta_age, Closeness_p_perm_age,
+         Strength_beta_offspring,Strength_p_perm_off,Strength_beta_age,Strength_p_perm_age)
+
+
+centrality_table_wide
+
+write.csv(centrality_table_wide,here("results","tables","centrality_perm_UA.csv"))
+```
+#CATEGORIC analysis --> not enough mothers with 3+ daughters
+```{r}
+centrality_UA <- centrality_UA %>%
+  dplyr::mutate(
+    offspring_cat = dplyr::case_when(
+      total_offspring == 0 ~ "0",
+      total_offspring == 1 ~ "1",
+      total_offspring == 2 ~ "2",
+      total_offspring >= 3 ~ "3"
+    ),
+    offspring_cat = factor(
+      offspring_cat,
+      levels = c("0", "1", "2","3")
+    )
+  )
+```
+
+```{r perm function for all metrics}
+centrality_cat_perm_UA <-run_permutation_cat(
+  df = centrality_UA,
+  years = 2013:2023,
+  n_perm = 1000
+)
+centrality_cat_perm_UA
+```
+```{r}
+centrality_cat_perm_UA <- centrality_cat_perm_UA %>%
+  mutate(
+    Metric = dplyr::case_when(
+      Metric == "eigen_cent" ~ "Eigenvector",
+      Metric == "closeness"  ~ "Closeness",
+      Metric == "strength"   ~ "Strength",
+      TRUE ~ Metric
+    )) %>% 
+      mutate(beta_off = round(beta_off,3)) %>% 
+  mutate(beta_age = round(beta_age, 3)) 
+
+centrality_table_wide_cat_UA <- centrality_cat_perm_UA %>%
+  tidyr::pivot_wider(
+    id_cols = c(year, Contrast),
+    names_from = Metric,
+    values_from = c(beta_off, p_perm_off),
+    names_glue = "{Metric}_{.value}"
+  ) %>%
+  dplyr::arrange(year, Contrast)
+
+centrality_table_wide_cat_UA <- centrality_table_wide_cat_UA %>%
+  select(
+    year,
+    Contrast,
+
+    Eigenvector_beta_off,
+    Eigenvector_p_perm_off,
+
+    Closeness_beta_off,
+    Closeness_p_perm_off,
+
+    Strength_beta_off,
+    Strength_p_perm_off
+  )
+
+
+centrality_table_wide_cat_UA
+write.csv(centrality_table_wide_cat_UA,here("results","tables","centrality_perm_UA_categorical.csv"))
+```
+#////////////
+#ALL years analysis 
+######numerical
+```{r}
+run_permutation_pooled_numeric_UA <- function(df,
+                                              responses = c("strength_z",
+                                                            "eigen_z",
+                                                            "closeness_z"),
+                                              n_perm = 1000) {
+
+  summary_list <- list()
+  null_list <- list()
+
+  for (resp in responses) {
+
+    form <- as.formula(
+      paste(resp,
+            "~ total_offspring + female_age + colony_size")
+    )
+
+    # ---- observed model ----
+    mod_obs <- lm(form, data = df)
+
+    beta_obs <- coef(mod_obs)["total_offspring"]
+
+    beta_perm <- numeric(n_perm)
+
+    # ---- permutation loop ----
+    for (i in seq_len(n_perm)) {
+
+      perm_df <- df %>%
+        group_by(year) %>%
+        mutate(total_offspring = sample(total_offspring)) %>%
+        ungroup()
+
+      mod_p <- lm(form, data = perm_df)
+
+      beta_perm[i] <- coef(mod_p)["total_offspring"]
+    }
+
+    p_perm <- mean(abs(beta_perm) >= abs(beta_obs))
+
+    summary_list[[resp]] <- data.frame(
+      metric = resp,
+      beta_observed = beta_obs,
+      p_perm = p_perm
+    )
+
+    null_list[[resp]] <- beta_perm
+  }
+
+  return(list(
+    summary = bind_rows(summary_list),
+    null_dist = null_list
+  ))
+}
+
+```
+
+run 
+```{r}
+centrality_perm_pooled_numeric_UA <- run_permutation_pooled_numeric_UA(
+  df = centrality_UA,
+  responses = c("strength_z", "eigen_z", "closeness_z"),
+  n_perm = 1000
+)
+```
+
+Results
+```{r}
+centrality_perm_pooled_numeric_UA$null_dist
+
+centrality_result_pooled_numeric_UA <- centrality_perm_pooled_numeric_UA$summary %>%
+  mutate(metric = case_when(
+    metric == "strength_z"  ~ "Strength",
+    metric == "eigen_z"     ~ "Eigenvector",
+    metric == "closeness_z" ~ "Closeness"
+  ))
+
+p.adjust(centrality_result_pooled_numeric_UA$p_perm, method = "fdr")
+centrality_result_pooled_numeric_UA
+```
+
+### hist plot
+histogram of the distribution of the permuted coefficients, with a vertical line for the observed coefficient, for each metric
+```{r}
+null_df_UA <- bind_rows(
+  lapply(names(centrality_perm_pooled_numeric_UA$null_dist), function(m) {
+    data.frame(
+      metric = m,
+      beta_perm = centrality_perm_pooled_numeric_UA$null_dist[[m]]
+    )
+  })
+)
+
+null_df_UA <- null_df_UA %>%
+  mutate(metric = case_when(
+    metric == "strength_z"  ~ "Strength",
+    metric == "eigen_z"     ~ "Eigenvector",
+    metric == "closeness_z" ~ "Closeness"
+  ))
+
+obs_df_UA <- centrality_perm_pooled_numeric_UA$summary %>%
+  mutate(metric = case_when(
+    metric == "strength_z"  ~ "Strength",
+    metric == "eigen_z"     ~ "Eigenvector",
+    metric == "closeness_z" ~ "Closeness"
+  ))
+```
+plot
+```{r}
+hist <- ggplot(null_df_UA, aes(x = beta_perm)) +
+  geom_histogram(aes(y = ..density..),
+                 bins = 30,
+                 fill = "grey80",
+                 color = "black",
+                 linewidth = 0.3) +
+  geom_vline(data = obs_df_UA,
+             aes(xintercept = beta_observed),
+             color = "red",
+             linewidth = 1.2) +
+  geom_text(data = obs_df_UA,
+            aes(x = -0.1,
+                y = 5,
+                label = paste0("p = ", round(p_perm, 3))),
+            color = "red",
+            size = 4) +
+  facet_wrap(~ metric, scales = "free") +
+  labs(x = "Permuted effect",
+       y = "Density") +
+  theme_classic(base_size = 13) +
+  theme(
+    strip.background = element_blank(),      # removes beige box
+    strip.text = element_text(face = "bold", size = 13),
+    panel.spacing = unit(1.2, "lines"),
+    plot.title = element_text(face = "bold", size = 14)
+  )
+hist
+
+ggsave(here("results","figures","Q3_perm_distribution_UA.png"), plot = hist,
+  width = 8,
+  height = 3
+)
+```
+
+```{r}
+year_slopes <- centrality_GB2 %>%
+  group_by(year) %>%
+  do(tidy(lm(strength_z ~ total_offspring + female_age, data = .))) %>%
+  filter(term == "total_offspring")
+
+table(year_slopes$estimate > 0)
+```
+
+# /////////////
+#PLOT result
+
+First the panels plot
+```{r}
+df_beta_GB2 <- centrality_perm_GB2 %>%
+  filter(metric == "Strength") %>%
+  mutate(
+    signif = p_perm_off < 0.05,
+    colony = "GB2"
+  )
+
+df_beta_UA <- centrality_perm_UA %>%
+  filter(metric == "Strength") %>%
+  mutate(
+    signif = p_perm_off < 0.05,
+    colony = "UA"
+  )
+
+df_beta_all <- bind_rows(df_beta_GB2, df_beta_UA)
+
+df_beta_all <- df_beta_all %>%
+  mutate(year = factor(year))
+```
+plot the two together
+```{r}
+p_beta <- ggplot(df_beta_all,
+                 aes(x = year,
+                     y = beta_offspring)) +
+
+  geom_hline(yintercept = 0,
+             colour = "grey75",
+             linewidth = 0.4) +
+
+  geom_point(aes(shape = signif),
+             size = 2.5,
+             colour = "black") +
+  scale_shape_manual(
+  values = c("TRUE" = 16, "FALSE" = 1),
+  labels = c("FALSE" = "n.s.",
+             "TRUE"  = "p < 0.05"),
+  name = NULL
+) +
+
+  facet_wrap(~ colony, ncol = 1) +
+
+  labs(
+    x = "Year",
+    y = expression("observed coefficient")
+  ) +
+
+  theme_classic(base_size = 13) +
+
+  theme(
+    axis.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45,
+                             hjust = 1,
+                             vjust = 1),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold"),
+    legend.position = "bottom"
+  )
+p_beta
+
+```
+And then the graphs
+GB2
+
+```{r}
+# select graph
+g_G2021
+vertex_attr_names(g_G2021) #only name 
+
+#take node attributes
+nodes_2021 <- centrality_GB2 %>%
+  dplyr::filter(year == 2021) %>%
+  dplyr::select(
+    ID,
+    strength,
+    offspring_cat,
+    female_age
+  )
+
+#add node attibutes on the igraph object 
+V(g_G2021)$strength <- nodes_2021$strength[
+  match(V(g_G2021)$name, nodes_2021$ID)
+]
+
+V(g_G2021)$offspring_cat <- nodes_2021$offspring_cat[
+  match(V(g_G2021)$name, nodes_2021$ID)
+]
+
+V(g_G2021)$female_age <- nodes_2021$female_age[
+  match(V(g_G2021)$name, nodes_2021$ID)
+]
+
+# colour palette (reuse yours if you want)
+pal <- c(
+  "0" = "#e8f1ff",
+  "1" = "#9cc0ff",
+  "2" = "#3f6cff",
+  "3" = "#103fbc"
+)
+
+p_net_GB2 <- ggraph(
+  g_G2021,
+  layout = "centrality",
+  centrality = V(g_G2021)$strength
+) +
+  geom_edge_link(
+    colour = "grey80",
+    width = 0.4,
+    alpha = 0.6
+  ) +
+   geom_node_point(
+  aes(fill = offspring_cat),
+  shape = 21,
+  size = 4,
+  stroke = 0.15
+  ) +
+  scale_fill_manual(
+    values = pal,
+    name = "Number of daughters"
+  ) +
+  scale_size_continuous(
+    range = c(3, 7),
+    guide = "none"
+  ) +
+  theme_void() +
+  ggtitle("GB2 - 2021")+ 
+theme(
+  plot.title = element_text(face = "bold", size = 12),
+  legend.position = "bottom"
+)
+
+p_net_GB2
+```
+
+UA
+```{r}
+# select graph
+g_U2021
+
+#take node attributes
+nodes_2021_UA <- centrality_UA%>%
+  dplyr::filter(year == 2021) %>%
+  dplyr::select(
+    ID,
+    strength,
+    offspring_cat,
+    female_age
+  )
+
+#add node attibutes on the igraph object 
+V(g_U2021)$strength <- nodes_2021_UA$strength[
+  match(V(g_U2021)$name, nodes_2021_UA$ID)
+]
+
+V(g_U2021)$offspring_cat <- nodes_2021_UA$offspring_cat[
+  match(V(g_U2021)$name, nodes_2021_UA$ID)
+]
+
+V(g_U2021)$female_age <- nodes_2021_UA$female_age[
+  match(V(g_U2021)$name, nodes_2021_UA$ID)
+]
+
+# colour palette (reuse yours if you want)
+pal <- c(
+  "0" = "#e8f1ff",
+  "1" = "#9cc0ff",
+  "2" = "#3f6cff",
+  "3" = "#103fbc"
+)
+
+p_net_UA <- ggraph(
+  g_U2021,
+  layout = "centrality",
+  centrality = V(g_U2021)$strength
+) +
+  geom_edge_link(
+    colour = "grey80",
+    width = 0.4,
+    alpha = 0.6
+  ) +
+  geom_node_point(
+  aes(fill = offspring_cat),
+  shape = 21,
+  size = 4,
+  stroke = 0.15
+  ) +
+  scale_fill_manual(
+    values = pal,
+    name = "Number of daughters"
+  ) +
+  scale_size_continuous(
+    range = c(3, 7),
+    guide = "none"
+  ) +
+  theme_void() +
+  ggtitle("UA - 2021")+ 
+theme(
+  plot.title = element_text(face = "bold", size = 12),
+  legend.position = "bottom"
+)
+
+p_net_UA
+```
+
+Stack networks
+```{r}
+#remove legend
+p_net_GB2 <- p_net_GB2 +
+  theme(legend.position = "none")
+
+#get more place for UA
+networks_stacked <- p_net_GB2 /
+                    p_net_UA +
+  plot_layout(heights = c(1, 1.4))
+```
+
+
+```{r}
+#combine with the year panel, networks takes more place
+main_panel <- networks_stacked | p_beta 
+main_panel
+
+ggsave(here("results","figures","Q3_yearly.png"), plot = main_panel,
+  width = 10,
+  height = 5
+)
+```
+
+
+
+# Predicted plot (results)
+```{r}
+library(ggeffects)
+#STRENGTH
+mod_GB2_strength  <- lmer(strength_z ~ total_offspring + female_age + colony_size + (1 | ID),
+                data = centrality_GB2)
+
+mod_UA_strength  <- lm(strength_z ~ total_offspring + female_age + colony_size, 
+                data = centrality_UA)
+
+pred_GB2_strength <- ggpredict(mod_GB2_strength, terms = "total_offspring")
+pred_UA_strength  <- ggpredict(mod_UA_strength,  terms = "total_offspring")
+
+#EIGENVECTOR 
+mod_GB2_eigenvector  <- lmer(eigen_z ~ total_offspring + female_age + colony_size + (1 | ID),
+                data = centrality_GB2)
+
+mod_UA_eigenvector  <- lm(eigen_z ~ total_offspring + female_age + colony_size, 
+                data = centrality_UA)
+
+pred_GB2_eigenvector <- ggpredict(mod_GB2_eigenvector, terms = "total_offspring")
+pred_UA_eigenvector  <- ggpredict(mod_UA_eigenvector,  terms = "total_offspring")
+
+#CLOSENESS
+mod_GB2_closeness  <- lmer(closeness_z ~ total_offspring + female_age + colony_size + (1 | ID),
+                data = centrality_GB2)
+
+mod_UA_closeness  <- lm(closeness_z ~ total_offspring + female_age + colony_size, 
+                data = centrality_UA)
+
+pred_GB2_closeness <- ggpredict(mod_GB2_closeness, terms = "total_offspring")
+pred_UA_closeness  <- ggpredict(mod_UA_closeness,  terms = "total_offspring")
+```
+Add metrics
+```{r}
+pred_GB2_strength$metric <- "Strength"
+pred_UA_strength$metric <- "Strength"
+
+pred_GB2_eigenvector$metric <- "Eigenvector"
+pred_UA_eigenvector$metric <- "Eigenvector"
+
+pred_GB2_closeness$metric <- "Closeness"
+pred_UA_closeness$metric <- "Closeness"
+
+pred_GB2 <- rbind(pred_GB2_strength, pred_GB2_eigenvector, pred_GB2_closeness)
+pred_UA  <- rbind(pred_UA_strength, pred_UA_eigenvector, pred_UA_closeness)
+
+#and add colony size
+pred_GB2$colony <- "GB2"
+pred_UA$colony  <- "UA"
+
+pred_all <- rbind(pred_GB2, pred_UA)
+```
+
+#plot all
+```{r}
+plot_predicted <- ggplot(pred_all, aes(x = x, y = predicted, color = metric, fill = metric)) +
+
+  geom_line(size = 1.2) +
+  
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              alpha = 0.15,
+              colour = NA) +
+  facet_wrap(~ colony) +
+
+  labs(x = "Number of daughters present",
+       y = "Standardized centrality",
+       color = "Metric",
+       fill  = "Metric") +
+  theme_classic(base_size = 14)
+```
+
++ add the data points
+```{r}
+#combine the two datasets (centrality)
+centrality_GB2$colony <- "GB2"
+centrality_UA$colony  <- "UA"
+data_all <- rbind(centrality_GB2, centrality_UA)
+
+plot_predicted <- ggplot(pred_all, aes(x = x, y = predicted, color = metric, fill = metric)) +
+
+  geom_line(size = 1.2) +
+  
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              alpha = 0.15,
+              colour = NA) +
+  facet_wrap(~ colony) +
+
+  labs(x = "Number of daughters present",
+       y = "Standardized centrality",
+       color = "Metric",
+       fill  = "Metric") +
+  theme_classic(base_size = 14) +
+geom_point(data = data_all,
+           aes(x = total_offspring, y = strength_z),
+           alpha = 0.25,
+           inherit.aes = FALSE)
+
+plot_predicted
+```
+#plot only strength
+```{r}
+plot_GB2 <- ggplot(pred_GB2_strength, aes(x = x, y = predicted)) +
+  geom_line(linewidth = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              alpha = 0.2) +
+  labs(x = "Number of daughters present",
+       y = "Predicted centrality",
+       title = "GB2 colony") +
+  theme_classic(base_size = 14)
+
+plot_GB2 <- plot_GB2 + geom_point(data = centrality_GB2,
+             aes(x = total_offspring, y = strength_z),
+             alpha = 0.2)
+#UA
+plot_UA <- ggplot(pred_UA_strength, aes(x = x, y = predicted)) +
+  geom_line(linewidth = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              alpha = 0.2) +
+  labs(x = "Number of daughters present",
+       y = "Predicted centrality",
+       title = "UA colony") +
+  theme_classic(base_size = 14)
+
+plot_UA <- plot_UA + geom_point(data = centrality_UA,
+             aes(x = total_offspring, y = strength_z),
+             alpha = 0.2)
+
+final_predicted <- (plot_GB2 | plot_UA)
+
+ggsave(here("results","figures","Q3_LM_predicted.png"), plot = final_predicted,
+  width = 8,
+  height = 4
+)
+```
