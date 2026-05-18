@@ -1,0 +1,930 @@
+---
+title: "Hypothesis 1 - Mother-daughter associations"
+author: 
+  name: "Flore Michel"
+  email: flore.michel@unil.ch
+  affiliation:
+    name: University of Lausanne, Departement of Ecology and Evolution
+execute:                            # Global options for code chunks
+  echo: true                        # Show code globally
+  warning: false                    # Hide warnings globally
+  freeze: auto                      # Only re-render if code changes
+  cache: true                       # Cache results (best for heavy computations)
+format:                             # Global options for rendering the document
+  html:                              # Defines render format in this case html
+    margin-top: 30px
+    toc: true                       # Includes table of content
+    toc-location: left              # Sets the location of the toc
+    toc-depth: 2                    # Sets the number of levels for the toc
+    number-sections: true           # Add automatic section number
+    number-depth: 2                 # Sets the maximum numberin level e.g. 2.2.1
+    #code-fold: true                 # Code chunk can be expanded
+    fig-cap-location: bottom        # Location of figure captions [top, bottom]
+    lightbox: true                  # When clicking on a figure it is expanded
+    embed-resources: true           # Make the report a stand-alone for sharing
+    theme:                          # Set the theme of the report 
+      light: litera                   # [default, cerulean, cosmo, flatly, journal, ...]
+      dark: slate                   # [cyborg, darkly, solar, superhero, vapor, ...]
+#bibliography: bib/workshop.bib.     # References used in the document
+#csl: bib/apa.csl                    # Citation style for rendering the references
+bibliography: references.bib
+---
+
+# Overview
+
+This script addresses **Hypothesis 1**: do mother–daughter pairs show stronger associations than other pair types during the daughter's first summer ?
+
+Three pair types are compared throughout:
+
+- mother-daughter (MD)
+
+- mother paired with an unrelated juvenile female
+
+- all remaining female dyads ("other")
+
+The analysis has two stages:
+
+1.  **QAP** (year-specific): tests whether MD dyads are more strongly associated expected by chance, within each year separately.
+2.  **GLMM** (cross-year): estimates the overall effect of pair type (3 type) on association strength across all eleven years, and tests whether this effect is modulated by colony size.
+
+Both colonies (GB2 and UA) are analysed in parallel using identical pipelines.
+
+----------------------
+
+```{r packages}
+library(dplyr)
+library(tidyr)
+library(igraph)
+library(asnipe)
+library(ggplot2)
+library(patchwork)
+library(here)
+library(sna)        
+library(glmmTMB)    #beta GLMM
+library(DHARMa)     #residual diagnostics
+library(performance) #check_overdispersion, check_collinearity
+library(broom.mixed) #tidy model output
+library(ggeffects)  #model predictions
+library(lme4)       #glmer — used only for Cook's distance diagnostic
+library(cowplot)
+```
+
+------------------------------------------------------------------------
+
+# 1 Load data
+
+## 1.1 Edge lists
+
+```{r load-edges}
+edges_GB2 <- read.csv(
+  here("data", "saved_matrices", "GB2", "edge_list_GB2.csv"),
+  header = TRUE, sep = ",", check.names = FALSE
+)
+
+edges_UA <- read.csv(
+  here("data", "saved_matrices", "UA", "edge_list_UA.csv"),
+  header = TRUE, sep = ",", check.names = FALSE
+)
+```
+
+## 1.2 Association matrices
+
+```{r load-networks}
+#| echo: true
+#GB2
+net_G2013<-read.csv(here("data","saved_matrices","GB2","net_G2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2013 <- as.matrix(net_G2013)
+net_G2014<-read.csv(here("data","saved_matrices","GB2","net_G2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2014 <- as.matrix(net_G2014)
+net_G2015<-read.csv(here("data","saved_matrices","GB2","net_G2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2015 <- as.matrix(net_G2015)
+net_G2016<-read.csv(here("data","saved_matrices","GB2","net_G2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2016 <- as.matrix(net_G2016)
+net_G2017<-read.csv(here("data","saved_matrices","GB2","net_G2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2017 <- as.matrix(net_G2017)
+net_G2018<-read.csv(here("data","saved_matrices","GB2","net_G2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2018 <- as.matrix(net_G2018)
+net_G2019<-read.csv(here("data","saved_matrices","GB2","net_G2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2019 <- as.matrix(net_G2019)
+net_G2020<-read.csv(here("data","saved_matrices","GB2","net_G2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2020 <- as.matrix(net_G2020)
+net_G2021<-read.csv(here("data","saved_matrices","GB2","net_G2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2021 <- as.matrix(net_G2021)
+net_G2022<-read.csv(here("data","saved_matrices","GB2","net_G2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2022 <- as.matrix(net_G2022)
+net_G2023<-read.csv(here("data","saved_matrices","GB2","net_G2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2023 <- as.matrix(net_G2023)
+
+#UA
+net_U2013<-read.csv(here("data","saved_matrices","UA","net_U2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2013 <- as.matrix(net_U2013)
+net_U2014<-read.csv(here("data","saved_matrices","UA","net_U2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2014 <- as.matrix(net_U2014)
+net_U2015<-read.csv(here("data","saved_matrices","UA","net_U2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2015 <- as.matrix(net_U2015)
+net_U2016<-read.csv(here("data","saved_matrices","UA","net_U2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2016 <- as.matrix(net_U2016)
+net_U2017<-read.csv(here("data","saved_matrices","UA","net_U2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2017 <- as.matrix(net_U2017)
+net_U2018<-read.csv(here("data","saved_matrices","UA","net_U2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2018 <- as.matrix(net_U2018)
+net_U2019<-read.csv(here("data","saved_matrices","UA","net_U2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2019 <- as.matrix(net_U2019)
+net_U2020<-read.csv(here("data","saved_matrices","UA","net_U2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2020 <- as.matrix(net_U2020)
+net_U2021<-read.csv(here("data","saved_matrices","UA","net_U2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2021 <- as.matrix(net_U2021)
+net_U2022<-read.csv(here("data","saved_matrices","UA","net_U2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2022 <- as.matrix(net_U2022)
+net_U2023<-read.csv(here("data","saved_matrices","UA","net_U2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2023 <- as.matrix(net_U2023)
+```
+
+Create the igraph object from the network matrices
+```{r}
+#| echo: true
+#GB2
+g_G2013<- graph_from_adjacency_matrix(net_G2013, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2016<- graph_from_adjacency_matrix(net_G2016, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2015<- graph_from_adjacency_matrix(net_G2015, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2016<- graph_from_adjacency_matrix(net_G2016, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2017<- graph_from_adjacency_matrix(net_G2017, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2018<- graph_from_adjacency_matrix(net_G2018, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2019<- graph_from_adjacency_matrix(net_G2019, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2020<- graph_from_adjacency_matrix(net_G2020, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2021<- graph_from_adjacency_matrix(net_G2021, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2022<- graph_from_adjacency_matrix(net_G2022, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2023<- graph_from_adjacency_matrix(net_G2023, mode = "undirected", weighted = TRUE, diag = FALSE)
+
+#UA
+g_U2013<- graph_from_adjacency_matrix(net_U2013, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2014<- graph_from_adjacency_matrix(net_U2014, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2015<- graph_from_adjacency_matrix(net_U2015, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2016<- graph_from_adjacency_matrix(net_U2016, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2017<- graph_from_adjacency_matrix(net_U2017, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2018<- graph_from_adjacency_matrix(net_U2018, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2019<- graph_from_adjacency_matrix(net_U2019, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2020<- graph_from_adjacency_matrix(net_U2020, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2021<- graph_from_adjacency_matrix(net_U2021, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2022<- graph_from_adjacency_matrix(net_U2022, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_U2023<- graph_from_adjacency_matrix(net_U2023, mode = "undirected", weighted = TRUE, diag = FALSE)
+```
+
+## 1.3 GBI matrices
+```{r}
+#| echo: true
+#GB2
+GBI_G2013<-read.csv(here("data","saved_matrices","GB2","GBI_G2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2013 <- as.matrix(GBI_G2013)
+GBI_G2014<-read.csv(here("data","saved_matrices","GB2","GBI_G2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2014 <- as.matrix(GBI_G2014)
+GBI_G2015<-read.csv(here("data","saved_matrices","GB2","GBI_G2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2015 <- as.matrix(GBI_G2015)
+GBI_G2016<-read.csv(here("data","saved_matrices","GB2","GBI_G2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2016 <- as.matrix(GBI_G2016)
+GBI_G2017<-read.csv(here("data","saved_matrices","GB2","GBI_G2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2017 <- as.matrix(GBI_G2017)
+GBI_G2018<-read.csv(here("data","saved_matrices","GB2","GBI_G2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2018 <- as.matrix(GBI_G2018)
+GBI_G2019<-read.csv(here("data","saved_matrices","GB2","GBI_G2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2019 <- as.matrix(GBI_G2019)
+GBI_G2020<-read.csv(here("data","saved_matrices","GB2","GBI_G2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2020 <- as.matrix(GBI_G2020)
+GBI_G2021<-read.csv(here("data","saved_matrices","GB2","GBI_G2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2021 <- as.matrix(GBI_G2021)
+GBI_G2022<-read.csv(here("data","saved_matrices","GB2","GBI_G2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2022 <- as.matrix(GBI_G2022)
+GBI_G2023<-read.csv(here("data","saved_matrices","GB2","GBI_G2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2023 <- as.matrix(GBI_G2023)
+
+#UA
+GBI_U2013<-read.csv(here("data","saved_matrices","UA","GBI_U2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2013 <- as.matrix(GBI_U2013)
+GBI_U2014<-read.csv(here("data","saved_matrices","UA","GBI_U2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2014 <- as.matrix(GBI_U2014)
+GBI_U2015<-read.csv(here("data","saved_matrices","UA","GBI_U2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2015 <- as.matrix(GBI_U2015)
+GBI_U2016<-read.csv(here("data","saved_matrices","UA","GBI_U2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2016 <- as.matrix(GBI_U2016)
+GBI_U2017<-read.csv(here("data","saved_matrices","UA","GBI_U2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2017 <- as.matrix(GBI_U2017)
+GBI_U2018<-read.csv(here("data","saved_matrices","UA","GBI_U2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2018 <- as.matrix(GBI_U2018)
+GBI_U2019<-read.csv(here("data","saved_matrices","UA","GBI_U2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2019 <- as.matrix(GBI_U2019)
+GBI_U2020<-read.csv(here("data","saved_matrices","UA","GBI_U2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2020 <- as.matrix(GBI_U2020)
+GBI_U2021<-read.csv(here("data","saved_matrices","UA","GBI_U2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2021 <- as.matrix(GBI_U2021)
+GBI_U2022<-read.csv(here("data","saved_matrices","UA","GBI_U2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2022 <- as.matrix(GBI_U2022)
+GBI_U2023<-read.csv(here("data","saved_matrices","UA","GBI_U2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2023 <- as.matrix(GBI_U2023)
+```
+
+## 1.4 colony size
+
+```{r load-colony-size}
+colony_size_GB2 <- read.csv(
+  here("data", "saved_matrices", "GB2", "colony_size_df.csv"),
+  header = TRUE, sep = ","
+) %>% mutate(year = as.numeric(year))
+
+colony_size_UA <- read.csv(
+  here("data", "saved_matrices", "UA", "colony_size_UA.csv"),
+  header = TRUE, sep = ","
+) %>% mutate(year = as.numeric(year))
+```
+
+## 1.5 Mother–unrelated-daughter pair lists
+
+```{r load-mom-juv}
+mom_juv_GB2 <- read.csv(
+  here("data", "saved_matrices", "GB2", "mom_juv_GB2.csv"),
+  header = TRUE, sep = ",", check.names = FALSE
+) %>%
+  mutate(pair_type_2 = recode(pair_type_2,
+                              "mother-random-juvenile" = "mother-unrelated-daughter"))
+
+mom_juv_UA <- read.csv(
+  here("data", "saved_matrices", "UA", "mom_juv_UA.csv"),
+  header = TRUE, sep = ",", check.names = FALSE
+) %>%
+  mutate(pair_type_2 = recode(pair_type_2,
+                              "mother-random-juvenile" = "mother-unrelated-daughter"))
+```
+
+------------------------------------------------------------------------
+# 2  QAP analysis (year-specific)
+Tests whether MD pairs are more strongly associated than all other dyads within
+each year. This is a binary comparison (MD vs. non-MD)
+## 2.1 functions
+```{r}
+# ── Build binary M predictor matrix for QAP ──────────────────────────────────
+# create matrix with 1 for mother-daughter dyads, 0 otherwise.
+build_m_matrix <- function(association_matrix, edges, the_year) {
+
+  ids <- rownames(association_matrix)
+  #edges for this year + the desired pair_type
+  edges_subset <- subset(edges, year == the_year & pair_type == "mother-daughter")
+  
+  #M matrix of zeros with same row/col
+  M <- matrix(0, nrow = length(ids), ncol = length(ids),
+              dimnames = list(ids, ids))
+  
+  #M matrix with 1 for mother–daughter
+  for (r in seq_len(nrow(edges_subset))) {
+    bat_i <- edges_subset$from[r]
+    bat_j <- edges_subset$to[r]
+    #only if both bats
+    if (bat_i %in% ids && bat_j %in% ids) {
+      M[bat_i, bat_j] <- 1
+      M[bat_j, bat_i] <- 1
+    }
+  }
+  
+  return(M)
+}
+
+# ── Run QAP for all years ──────────────────────────────────────────────────────
+# separately for each year - 10 000 permutations
+run_qap <- function(net_list,edges){
+  results_list <- list()
+  
+  #for each year
+  for (the_year in names(net_list)) {
+    A_yr <- net_list[[the_year]]
+  
+    #build predictor matrix
+    M <- build_m_matrix(A_yr, edges, the_year) 
+    g <- list(A_yr, M)
+    
+    #run QAP
+    qap_res <- qaptest(g,FUN = gcor,g1  = 1,g2  = 2,reps = 10000)
+    
+    #extract statistics
+    s <- summary(qap_res)
+    test_val <- s$testval
+    p_greq   <- s$pgreq
+    p_leeq   <- s$pleeq
+    
+  #create result table 
+    results_df <- data.frame(
+      year        = the_year,
+      correlation = test_val,
+      pval_upper  = p_greq,
+      pval_lower  = p_leeq,
+      stringsAsFactors = FALSE
+    )
+    
+    results_list[[the_year]] <- results_df
+  }
+  
+  all_results_df <- do.call(rbind, results_list)
+  rownames(all_results_df) <- NULL
+  
+  return(all_results_df)
+}
+#----- create list of all the networks for each years
+
+net_list_GB2 <- list(
+  "2013" = net_G2013,"2014" = net_G2014,"2015" = net_G2015,"2016" = net_G2016,"2017" = net_G2017,"2018" = net_G2018,"2019" = net_G2019,"2020" = net_G2020,"2021" = net_G2021,"2022" = net_G2022,"2023" = net_G2023
+)
+
+net_list_UA <- list(
+  "2013" = net_U2013,"2014" = net_U2014,"2015" = net_U2015,"2016" = net_U2016,"2017" = net_U2017,"2018" = net_U2018,"2019" = net_U2019,"2020" = net_U2020,"2021" = net_U2021,"2022" = net_U2022,"2023" = net_U2023
+)
+```
+
+## 2.2 run QAP
+```{r qap-run}
+QAP_GB2 <- run_qap(net_list_GB2, edges_GB2)
+QAP_UA  <- run_qap(net_list_UA,  edges_UA)
+```
+
+```{r qap-results}
+cat("GB2\n"); print(QAP_GB2)
+cat("\n UA \n");  print(QAP_UA)
+```
+## 2.1  Visualisation — association strength by year
+
+Stars indicate QAP significance: * p < 0.05, ** p < 0.01, *** p < 0.001.
+
+```{r qap-plot, fig.width=8, fig.height=6}
+add_sig_stars <- function(qap_df) {
+  qap_df %>%
+    mutate(star = case_when(
+      pval_upper < 0.001 ~ "***",
+      pval_upper < 0.01  ~ "**",
+      pval_upper < 0.05  ~ "*",
+      TRUE            ~ ""
+    ))
+}
+
+make_qap_plot <- function(edges, qap_df, colony_label) {
+  edges_plot <- edges %>%
+    mutate(year = as.character(year),
+           pair_type = factor(pair_type,
+                              levels = c("other", "mother-daughter")))
+  stars <- add_sig_stars(qap_df) %>%
+    mutate(year = as.character(year))
+
+  ggplot(edges_plot, aes(x = year, y = weight, fill = pair_type)) +
+    geom_boxplot(width = 0.6, outlier.size = 0.5, outlier.colour = "#787777") +
+    geom_text(data = stars, aes(x = year, y = 0.97, label = star),
+              inherit.aes = FALSE, size = 5) +
+    scale_fill_manual(values = c("mother-daughter" = "#b56e7f",
+                                 "other"           = "#787777")) +
+    labs(title = colony_label, x = NULL,
+         y = "Association strength (SRI)", fill = "pair type") +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5))
+}
+
+p_qap_GB2 <- make_qap_plot(edges_GB2, QAP_GB2, "Colony GB2")
+p_qap_UA  <- make_qap_plot(edges_UA,  QAP_UA,  "Colony UA")
+
+combined_qap <- (p_qap_GB2 / p_qap_UA) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+combined_qap
+
+ggsave(here("results", "figures", "H1_QAP_combined.png"),
+       plot = combined_qap, width = 8, height = 6, dpi = 300)
+```
+
+---
+
+# 3  GLMM — cross-year analysis
+
+## 3.1 Functions
+```{r}
+# Prepare three-type edge list for GLMM ─────────────────────────────────────
+#join all pair labels in the full edge list; unlabelled dyads become "other".
+build_three_type_edges <- function(edges, mom_juv, colony_size) {
+  edges %>%
+    left_join(colony_size, by = "year") %>%
+    left_join(mom_juv %>% select(pairID, year, pair_type_2),
+              by = c("pairID", "year")) %>%
+    mutate(
+      pair_type_2 = if_else(is.na(pair_type_2), "other", pair_type_2),
+      pair_type_2 = factor(pair_type_2,
+                           levels = c("other", "mother-daughter",
+                                      "mother-unrelated-daughter")),
+      colony_size_c = as.numeric(scale(colony_size, center = TRUE, scale = FALSE))
+    )
+}
+
+# Node-label permutation p-values (two-tailed) ──────────────────────────────
+compute_perm_pvalues <- function(obs_coef, perm_matrix) {
+  sapply(names(obs_coef), function(nm)
+    mean(abs(perm_matrix[, nm]) >= abs(obs_coef[nm]))
+  )
+}
+
+# Permutation table (observed vs permuted distribution) ─────────────────────
+make_perm_table <- function(obs_coef, perm_matrix, p_values) {
+  obs_df <- data.frame(term = names(obs_coef),
+                       observed = as.numeric(obs_coef),
+                       stringsAsFactors = FALSE)
+  perm_summary <- as.data.frame(perm_matrix) %>%
+    pivot_longer(everything(), names_to = "term", values_to = "value") %>%
+    group_by(term) %>%
+    summarise(perm_mean = mean(value), perm_sd = sd(value), .groups = "drop")
+  obs_df %>%
+    left_join(perm_summary, by = "term") %>%
+    mutate(p_value = p_values[term]) %>%
+    arrange(desc(observed))
+}
+```
+
+## 3.2 edge lists - add pair types
+
+```{r}
+edge_GB2 <- build_three_type_edges(edges_GB2, mom_juv_GB2, colony_size_GB2)
+edge_UA  <- build_three_type_edges(edges_UA,  mom_juv_UA,  colony_size_UA)
+```
+
+## 3.3  check for influential years (cook's distance)
+
+Use of lme4 here in order to measure cook's distance (not possible with glmmTMB)
+
+```{r cooks distance}
+# ── GB2 ──
+model_diag_GB2 <- glmer(
+  weight ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
+  data = edge_GB2, family = binomial()
+)
+infl_GB2 <- influence(model_diag_GB2, group = "year")
+plot(infl_GB2, which = "cook")
+cooks.distance(infl_GB2)
+
+# ── UA ──
+model_diag_UA <- glmer(
+  weight ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
+  data = edge_UA, family = binomial()
+)
+infl_UA <- influence(model_diag_UA, group = "year")
+plot(infl_UA, which = "cook")
+cooks.distance(infl_UA)
+```
+
+```{r remove years}
+# Year 2019 identified as influential in GB2 (Cook's distance); excluded below.
+# Year 2016 identified as influential in UA (Cook's distance); excluded below.
+edge_GB2_clean <- edge_GB2 %>% filter(year != 2019)
+edge_UA_clean  <- edge_UA  %>% filter(year != 2016)
+```
+
+## 3.4 Weight transformation before GLMM 
+Beta distribution requires values strictly between 0 and 1. Tranform following: y' = (y*(n-1) + 0.5) / n  (Smithson & Verkuilen, 2006)
+```{r transformation}
+#GB2
+n <- nrow(edge_GB2_clean)
+edge_GB2_clean$weight <- (edge_GB2_clean$weight * (n - 1) + 0.5) / n
+
+#UA
+n <- nrow(edge_UA_clean)
+edge_UA_clean$weight <- (edge_UA_clean$weight * (n - 1) + 0.5) / n
+```
+
+
+## 3.5 final models
+
+Two models per colony: one without interaction (main effects only) and one with
+a pair type × colony size interaction to test whether the effect of pair type
+depends on demographic context.
+
+```{r models}
+# GB2 -------
+model_GB2 <- glmmTMB(
+  weight ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
+  data   = edge_GB2_clean,
+  family = beta_family()
+)
+
+model_GB2_int <- glmmTMB(
+  weight ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
+  data   = edge_GB2_clean,
+  family = beta_family()
+)
+
+# UA ------
+model_UA <- glmmTMB(
+  weight ~ pair_type_2 + colony_size_c + (1 | year),
+  data   = edge_UA_clean,
+  family = beta_family()
+)
+
+model_UA_int <- glmmTMB(
+  weight ~ pair_type_2 * colony_size_c + (1 | year),
+  data   = edge_UA_clean,
+  family = beta_family()
+)
+```
+
+```{r model summaries}
+summary(model_GB2);     summary(model_GB2_int)
+summary(model_UA);      summary(model_UA_int)
+```
+
+## 3.6 model diagnostics
+
+```{r diagnostics}
+check_model <- function(model, label) {
+  cat("\n──", label, "──\n")
+  print(check_overdispersion(model))
+  print(check_collinearity(model))
+  sim <- simulateResiduals(model, n = 1000)
+  plot(sim, main = label)
+}
+
+check_model(model_GB2,     "GB2 — main effects")
+check_model(model_GB2_int, "GB2 — interaction")
+check_model(model_UA,      "UA  — main effects")
+check_model(model_UA_int,  "UA  — interaction")
+```
+
+---
+
+# 4  Permutation (node-label permutations)
+
+For each permutation, pair-type labels are shuffled within year while preserving the number of pairs per type The GLMM is refitted on each permutations, and the coefficients are stored. P values are two-tailed: the proportion of permuted coefficients that are equal or exceeding the observed coefficient
+
+We did n = 1000 permutations for each model
+
+## 4.1  GB2
+
+```{r perm GB2}
+set.seed(23)
+n_perm <- 1000
+
+#coefficients 
+coef_names_GB2 <- c(
+  "pair_type_2mother-daughter",
+  "pair_type_2mother-unrelated-daughter",
+  "colony_size_c"
+)
+coef_names_GB2_int <- c(
+  "pair_type_2mother-daughter",
+  "pair_type_2mother-unrelated-daughter",
+  "colony_size_c",
+  "pair_type_2mother-daughter:colony_size_c",
+  "pair_type_2mother-unrelated-daughter:colony_size_c"
+)
+
+obs_coef_GB2     <- fixef(model_GB2)$cond[coef_names_GB2]
+obs_coef_GB2_int <- fixef(model_GB2_int)$cond[coef_names_GB2_int]
+
+perm_GB2     <- matrix(NA, n_perm, length(coef_names_GB2),
+                       dimnames = list(NULL, coef_names_GB2))
+perm_GB2_int <- matrix(NA, n_perm, length(coef_names_GB2_int),
+                       dimnames = list(NULL, coef_names_GB2_int))
+
+for (i in seq_len(n_perm)) {
+  d <- edge_GB2_clean %>%
+    group_by(year) %>%
+    mutate(pair_type_2 = sample(pair_type_2)) %>%
+    ungroup()
+
+  m <- glmmTMB(weight ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
+               family = beta_family(), data = d)
+  perm_GB2[i, ] <- fixef(m)$cond[coef_names_GB2]
+
+  m_int <- glmmTMB(weight ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
+                   family = beta_family(), data = d)
+  perm_GB2_int[i, ] <- fixef(m_int)$cond[coef_names_GB2_int]
+}
+
+save(perm_GB2, perm_GB2_int,
+     file = here("results", "H1_permutations_GB2.RData"))
+```
+
+```{r perm-gb2-pvalues}
+p_GB2     <- compute_perm_pvalues(obs_coef_GB2,     perm_GB2)
+p_GB2_int <- compute_perm_pvalues(obs_coef_GB2_int, perm_GB2_int)
+
+table_GB2     <- make_perm_table(obs_coef_GB2,     perm_GB2,     p_GB2)
+table_GB2_int <- make_perm_table(obs_coef_GB2_int, perm_GB2_int, p_GB2_int)
+
+cat("── GB2 main effects ──\n");  print(table_GB2)
+cat("\n── GB2 interaction ──\n"); print(table_GB2_int)
+
+write.csv(table_GB2,
+          here("results", "tables", "H1_perm_GB2_main.csv"),     row.names = FALSE)
+write.csv(table_GB2_int,
+          here("results", "tables", "H1_perm_GB2_interaction.csv"), row.names = FALSE)
+```
+
+## 4.2  UA
+
+```{r perm-ua, cache=TRUE}
+set.seed(23)
+
+coef_names_UA <- c(
+  "pair_type_2mother-daughter",
+  "pair_type_2mother-unrelated-daughter",
+  "colony_size_c"
+)
+coef_names_UA_int <- c(
+  "pair_type_2mother-daughter",
+  "pair_type_2mother-unrelated-daughter",
+  "colony_size_c",
+  "pair_type_2mother-daughter:colony_size_c",
+  "pair_type_2mother-unrelated-daughter:colony_size_c"
+)
+
+obs_coef_UA     <- fixef(model_UA)$cond[coef_names_UA]
+obs_coef_UA_int <- fixef(model_UA_int)$cond[coef_names_UA_int]
+
+perm_UA     <- matrix(NA, n_perm, length(coef_names_UA),
+                      dimnames = list(NULL, coef_names_UA))
+perm_UA_int <- matrix(NA, n_perm, length(coef_names_UA_int),
+                      dimnames = list(NULL, coef_names_UA_int))
+
+for (i in seq_len(n_perm)) {
+  d <- edge_UA_clean %>%
+    group_by(year) %>%
+    mutate(pair_type_2 = sample(pair_type_2)) %>%
+    ungroup()
+
+  m <- glmmTMB(weight ~ pair_type_2 + colony_size_c + (1 | year),
+               family = beta_family(), data = d)
+  perm_UA[i, ] <- fixef(m)$cond[coef_names_UA]
+
+  m_int <- glmmTMB(weight ~ pair_type_2 * colony_size_c + (1 | year),
+                   family = beta_family(), data = d)
+  perm_UA_int[i, ] <- fixef(m_int)$cond[coef_names_UA_int]
+}
+
+save(perm_UA, perm_UA_int,
+     file = here("results", "H1_permutations_UA.RData"))
+```
+
+```{r perm-ua-pvalues}
+p_UA     <- compute_perm_pvalues(obs_coef_UA,     perm_UA)
+p_UA_int <- compute_perm_pvalues(obs_coef_UA_int, perm_UA_int)
+
+table_UA     <- make_perm_table(obs_coef_UA,     perm_UA,     p_UA)
+table_UA_int <- make_perm_table(obs_coef_UA_int, perm_UA_int, p_UA_int)
+
+cat("── UA main effects ──\n");  print(table_UA)
+cat("\n── UA interaction ──\n"); print(table_UA_int)
+
+write.csv(table_UA,
+          here("results", "tables", "H1_perm_UA_main.csv"),        row.names = FALSE)
+write.csv(table_UA_int,
+          here("results", "tables", "H1_perm_UA_interaction.csv"), row.names = FALSE)
+```
+
+---
+
+# 5  Visualisation — model predictions
+
+```{r model-predictions, fig.width=9, fig.height=4}
+pred_GB2 <- ggpredict(model_GB2_int,
+                      terms = c("colony_size_c [-25:25 by=1]", "pair_type_2"),
+                      bias_correction = TRUE)
+
+pred_UA  <- ggpredict(model_UA,
+                      terms = c("colony_size_c [-10:10 by=1]", "pair_type_2"),
+                      bias_correction = TRUE)
+
+pair_colours <- c(
+  "mother-daughter"           = "#C2347A",
+  "mother-unrelated-daughter" = "#004488",
+  "other"                     = "#999999"
+)
+
+make_pred_plot <- function(pred, title, show_y = TRUE) {
+  ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+                alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 1) +
+    scale_colour_manual(values = pair_colours) +
+    scale_fill_manual(values = pair_colours) +
+    labs(title = title,
+         x = "Centred colony size",
+         y = if (show_y) "Predicted association strength (SRI)" else NULL,
+         colour = "Pair type", fill = "Pair type") +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5))
+}
+
+p_pred_GB2 <- make_pred_plot(pred_GB2, "Colony GB2", show_y = TRUE)
+p_pred_UA  <- make_pred_plot(pred_UA,  "Colony UA",  show_y = FALSE)
+
+combined_pred <- p_pred_GB2 + p_pred_UA +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+combined_pred
+
+ggsave(here("results", "figures", "H1_model_predictions.png"),
+       plot = combined_pred, width = 8, height = 4, dpi = 300)
+```
+
+---
+
+# 6  Descriptive statistics
+
+```{r stats}
+# mean ± SD of SRI per pair type per year, and colony size per year
+summarise_edges <- function(edges, colony_label) {
+  cat("\n── SRI summary by year and pair type —", colony_label, "──\n")
+  edges %>%
+    group_by(year, pair_type_2) %>%
+    summarise(mean_sri = round(mean(weight), 3),
+              sd_sri   = round(sd(weight),   3),
+              n_dyads  = n(), .groups = "drop") %>%
+    print()
+
+  cat("\n── Colony size per year —", colony_label, "──\n")
+  edges %>%
+    group_by(year) %>%
+    summarise(colony_size = mean(colony_size, na.rm = TRUE), .groups = "drop") %>%
+    print()
+
+  cat("\n── Number of MD pairs per year —", colony_label, "──\n")
+  edges %>%
+    filter(pair_type_2 == "mother-daughter") %>%
+    group_by(year) %>%
+    summarise(n_md = n(), .groups = "drop") %>%
+    print()
+}
+
+summarise_edges(edge_GB2_clean, "GB2")
+summarise_edges(edge_UA_clean,  "UA")
+```
+
+```{r density}
+# mean network density across years
+mean_density <- function(net_list, label) {
+  d <- sapply(net_list, function(net) {
+    g <- igraph::graph_from_adjacency_matrix(net, mode = "undirected",
+                                             weighted = TRUE, diag = FALSE)
+    igraph::edge_density(g, loops = FALSE)
+  })
+  cat("mean network density —", label, ":", round(mean(d), 4), "\n")
+}
+
+mean_density(net_list_GB2, "GB2")
+mean_density(net_list_UA,  "UA")
+```
+
+---
+
+# 7  Network plot
+Import mother-daughter file to get juveniles ID
+```{r}
+mother_daughter_GB2 <- read.csv(here("data","mother_daughter_GB2.csv"))
+mother_daughter_UA <- read.csv(here("data","mother_daughter_UA.csv"))
+```
+
+```{r}
+# create function to create network plot
+network_plot <- function(edge_df, net_matrix, md_file, yr, title) {
+  
+  edges_yr <- edge_df %>%
+    filter(year == yr) %>%
+    mutate(pair_type_2 = as.character(pair_type_2))
+  
+  juv <- md_file %>% filter(year == yr) %>% pull(rfid_off) %>% unique()
+  
+  g <- graph_from_adjacency_matrix(net_matrix, mode = "undirected",
+                                   weighted = TRUE, diag = FALSE)
+  set.seed(42)
+  lay <- layout_with_fr(g, weights = E(g)$weight)
+  
+  # node colour (pair type) + shape (adult/juvenile)
+  md_females <- unique(c(
+    edges_yr$from[edges_yr$pair_type_2 == "mother-daughter"],
+    edges_yr$to[edges_yr$pair_type_2   == "mother-daughter"]
+  ))
+  murd_females <- unique(c(
+    edges_yr$from[edges_yr$pair_type_2 == "mother-unrelated-daughter"],
+    edges_yr$to[edges_yr$pair_type_2   == "mother-unrelated-daughter"]
+  ))
+  
+  nodes <- data.frame(name = V(g)$name, x = lay[, 1], y = lay[, 2]) %>%
+    mutate(
+      node_type = case_when(
+        name %in% md_females   ~ "mother-daughter",
+        name %in% murd_females ~ "mother-unrelated-daughter",
+        TRUE                   ~ "other"
+      ),
+      is_juv = name %in% juv
+    )
+  
+  el  <- as_edgelist(g) %>% as.data.frame() %>% rename(from = V1, to = V2)
+  fwd <- el %>% left_join(edges_yr %>% select(from, to, pair_type_2), by = c("from", "to"))
+  rev <- el %>% left_join(edges_yr %>% select(from, to, pair_type_2), by = c("from" = "to", "to" = "from"))
+  
+  edges_full <- fwd %>%
+    mutate(pair_type_2 = if_else(is.na(pair_type_2), rev$pair_type_2, pair_type_2),
+           pair_type_2 = if_else(is.na(pair_type_2), "other", pair_type_2)) %>%
+    left_join(nodes %>% rename(from = name, x1 = x, y1 = y), by = "from") %>%
+    left_join(nodes %>% rename(to   = name, x2 = x, y2 = y), by = "to")
+  
+  e_other <- edges_full %>% filter(pair_type_2 == "other")
+  e_murd  <- edges_full %>% filter(pair_type_2 == "mother-unrelated-daughter")
+  e_md    <- edges_full %>% filter(pair_type_2 == "mother-daughter")
+  
+  # split nodes by type and age for layered drawing
+  n_other_adult <- nodes %>% filter(node_type == "other", !is_juv)
+  n_other_juv   <- nodes %>% filter(node_type == "other",  is_juv)
+  n_murd_adult  <- nodes %>% filter(node_type == "mother-unrelated-daughter", !is_juv)
+  n_murd_juv    <- nodes %>% filter(node_type == "mother-unrelated-daughter",  is_juv)
+  n_md_adult    <- nodes %>% filter(node_type == "mother-daughter", !is_juv)
+  n_md_juv      <- nodes %>% filter(node_type == "mother-daughter",  is_juv)
+  
+  ggplot() +
+    #edges with other behind and MD on top
+    geom_segment(data = e_other, aes(x = x1, y = y1, xend = x2, yend = y2),
+                 colour = pair_colours["other"], alpha = 0.3, linewidth = 0.2) +
+    geom_segment(data = e_murd,  aes(x = x1, y = y1, xend = x2, yend = y2),
+                 colour = pair_colours["mother-unrelated-daughter"],
+                 alpha = 0.7, linewidth = 0.8) +
+    geom_segment(data = e_md,    aes(x = x1, y = y1, xend = x2, yend = y2),
+                 colour = pair_colours["mother-daughter"],
+                 alpha = 0.9, linewidth = 1.1) +
+    #other nodes
+    geom_point(data = n_other_adult, aes(x = x, y = y), shape = 21, size = 2.3,
+               fill = pair_colours["other"], colour = "white", stroke = 0.4) +
+    geom_point(data = n_other_juv,   aes(x = x, y = y), shape = 24, size = 2.5,
+               fill = pair_colours["other"], colour = "white", stroke = 0.4) +
+    #M-NRD nodes
+    geom_point(data = n_murd_adult,  aes(x = x, y = y), shape = 21, size = 2.5,
+               fill = pair_colours["mother-unrelated-daughter"], colour = "white", stroke = 0.5) +
+    geom_point(data = n_murd_juv,    aes(x = x, y = y), shape = 24, size = 2.7,
+               fill = pair_colours["mother-unrelated-daughter"], colour = "white", stroke = 0.5) +
+    # MD nodes on top
+    geom_point(data = n_md_adult,    aes(x = x, y = y), shape = 21, size = 2.5,
+               fill = pair_colours["mother-daughter"], colour = "white", stroke = 0.5) +
+    geom_point(data = n_md_juv,      aes(x = x, y = y), shape = 24, size = 2.7,
+               fill = pair_colours["mother-daughter"], colour = "white", stroke = 0.5) +
+    labs(title = title) +
+    theme_void(base_size = 11) +
+    theme(plot.title = element_text(hjust = 0.5, size = 11, face = "plain"))
+}
+
+# function for histogram plot—————————
+histogram_plot <- function(edge_df, yr) {
+  
+  edges_yr <- edge_df %>% filter(year == yr)
+  
+  m <- mean(edges_yr$weight, na.rm = TRUE)
+  
+  ggplot(edges_yr, aes(x = weight)) +
+    geom_histogram(bins = 25, fill = "#BBBBBB", colour = "white",
+                   linewidth = 0.15) +
+    geom_vline(xintercept = m, colour = "red", linewidth = 0.6) +
+    annotate("text", x = m + 0.02, y = Inf,
+             label = paste0("mean = ", round(m, 2)),
+             colour = "red", size = 2.8, hjust = 0, vjust = 1.6) +
+    labs(x = "Association strength (SRI)", y = "Count") +
+    theme_minimal(base_size = 10) +
+    theme(legend.position  = "none",
+          panel.grid.minor = element_blank(),
+          axis.title       = element_text(size = 9),
+          axis.text        = element_text(size = 8))
+}
+
+# create legends
+leg_edges <- get_legend(
+  ggplot(edge_GB2_clean %>%
+           filter(year == 2023) %>%
+           mutate(pair_type_2 = factor(pair_type_2,
+                                       levels = c("other",
+                                                  "mother-unrelated-daughter",
+                                                  "mother-daughter"))),
+         aes(x = weight, fill = pair_type_2)) +
+    geom_histogram() +
+    scale_fill_manual(values = pair_colours,
+                      name   = "pair type:",
+                      labels = c("other",
+                                 "mother–unrelated juvenile",
+                                 "mother–daughter")) +
+    guides(fill = guide_legend(override.aes = list(alpha = 1))) +
+    theme_minimal() +
+    theme(legend.position = "bottom",
+          legend.title    = element_text(size = 10),
+          legend.text     = element_text(size = 9),
+          legend.key.size = unit(0.4, "cm"))
+)
+
+leg_nodes <- get_legend(
+  ggplot(data.frame(x = 1:2, y = 1, type = c("adult", "juvenile")),
+         aes(x = x, y = y, colour = type)) +
+    geom_point(alpha = 0) +
+    scale_colour_manual(
+      values = c("adult" = "#333333", "juvenile" = "#333333"),
+      name   = "Individual",
+      labels = c("adult", "juvenile"),
+      guide  = guide_legend(
+        override.aes = list(shape  = c(21, 24),
+                            fill   = c("#333333", "#333333"),
+                            colour = "white",
+                            size   = 3.5,
+                            alpha  = 1,
+                            stroke = 0.5)
+      )
+    ) +
+    theme_void() +
+    theme(legend.position = "bottom",
+          legend.title    = element_text(size = 10),
+          legend.text     = element_text(size = 9),
+          legend.key.size = unit(0.5, "cm"))
+)
+
+leg_combined <- plot_grid(leg_edges, leg_nodes, ncol = 1, rel_heights = c(1, 0.8))
+
+# create both plots for both colonies —————————————
+p_net_GB2  <- network_plot(edge_GB2_clean, net_G2023, mother_daughter_GB2, 2023, "Colony GB2")
+p_hist_GB2 <- histogram_plot(edge_GB2_clean, 2023)
+
+p_net_UA   <- network_plot(edge_UA_clean,  net_U2023, mother_daughter_UA,  2023, "Colony UA")
+p_hist_UA  <- histogram_plot(edge_UA_clean, 2023)
+
+row_GB2 <- p_net_GB2 + p_hist_GB2 + plot_layout(widths = c(2.5, 1))
+row_UA  <- p_net_UA  + p_hist_UA  + plot_layout(widths = c(2.5, 1))
+
+# combine with patchwork
+combined <- wrap_elements(row_GB2) /
+            wrap_elements(row_UA)  /
+            wrap_elements(leg_combined) +
+  plot_layout(heights = c(1, 1, 0.18))
+
+combined
+
+#save———————————
+ggsave(here("results", "figures", "Fig1_networks_histograms.png"),
+       plot = combined, width = 9, height = 7, dpi = 300)
+```
+
+
+
+
+
+
+
+
