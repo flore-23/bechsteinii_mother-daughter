@@ -1,0 +1,590 @@
+---
+title: "Data Preparation for Network Analysis "
+author: 
+  name: "Flore Michel"
+  email: flore.michel@unil.ch
+  affiliation:
+    name: University of Lausanne, Departement of Ecology and Evolution
+execute:                            # Global options for code chunks
+  echo: true                        # Show code globally
+  warning: false                    # Hide warnings globally
+  freeze: auto                      # Only re-render if code changes
+  cache: true                       # Cache results (best for heavy computations)
+format:                             # Global options for rendering the document
+  html:                              # Defines render format in this case html
+    margin-top: 30px
+    toc: true                       # Includes table of content
+    toc-location: left              # Sets the location of the toc
+    toc-depth: 2                    # Sets the number of levels for the toc
+    number-sections: true           # Add automatic section number
+    number-depth: 2                 # Sets the maximum numberin level e.g. 2.2.1
+    #code-fold: true                 # Code chunk can be expanded
+    fig-cap-location: bottom        # Location of figure captions [top, bottom]
+    lightbox: true                  # When clicking on a figure it is expanded
+    embed-resources: true           # Make the report a stand-alone for sharing
+    theme:                          # Set the theme of the report 
+      light: litera                   # [default, cerulean, cosmo, flatly, journal, ...]
+      dark: slate                   # [cyborg, darkly, solar, superhero, vapor, ...]
+#bibliography: bib/workshop.bib.     # References used in the document
+#csl: bib/apa.csl                    # Citation style for rendering the references
+bibliography: references.bib
+---
+
+# Introduction
+
+This first script imports, clean and prepares raw association data collected from *Myotis bechsteinii* in two colonies (GB2 and UA), near Wurzburg in Germany between 2013 and 2023.
+
+### Data description
+
+-   **Raw roost datasets**: one data set for each year, each row representing a day of observation, column names represent the individuals in the colony. Number in the table represent the roost number where the individual spent the day.
+
+-   **Mother-daughter file**: One for each colony, each row is a mother-daughter pair. Column name "rfid_mom" (mother ID), "rfid_off" (daughter ID), year and a unique pairID composed of the rfid_mom and rfid_off, order alphabetically to ensure universal ID.
+
+### Load packages
+
+```{r}
+#| label: packages
+#| message: false
+#| warning: false
+#code-fold: true
+library(dplyr)
+library(here)
+library(igraph)
+library(asnipe)
+library(sna)
+library(ggplot2)
+library(tidyverse)
+library(igraph)
+library(data.table)
+```
+
+# Load datasets
+
+### Mother-daughter lists
+
+```{r}
+mother_daughter_GB2 <- read.csv(here("data","mother_daughter_GB2.csv"))
+mother_daughter_UA <- read.csv(here("data","mother_daughter_UA.csv"))
+```
+
+# Load yearly roost data
+
+## GB2
+
+```{r}
+#| label: load_roost_df
+#| output: false
+#| code-fold: true
+#load data set and clean unnecessary columns
+# 2013
+GB2_2013<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2013_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2013<-GB2_2013[c(0:30)]
+GB2_2013 <- GB2_2013[, -4]
+GB2_2013 <- GB2_2013[, -3]
+GB2_2013 <- GB2_2013[, -2]
+colnames(GB2_2013)[colnames(GB2_2013) == "number"] <- "date"
+#_______________________________________________________________
+#2014
+GB2_2014<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2014_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2014<-GB2_2014[c(0:40)] #filter columns
+GB2_2014<-GB2_2014[1:51,]
+GB2_2014 <- GB2_2014[, -4]
+GB2_2014 <- GB2_2014[, -3]
+GB2_2014 <- GB2_2014[, -2]
+colnames(GB2_2014)[colnames(GB2_2014) == "number"] <- "date"
+GB2_2014 <- GB2_2014[, !(colnames(GB2_2014) %in% c("E4D5", "B661"))] #fix mismatching in individual ID
+#_______________________________________________________________
+#2015
+GB2_2015<-read.csv(here("data","raw_roost_data","Dayroosts_GB2_2015_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2015<-GB2_2015[c(0:38)] #filter columns
+GB2_2015<-GB2_2015[1:45,]
+
+colnames(GB2_2015)[colnames(GB2_2015) == "number"] <- "date"
+
+#remove one individual (not enough data)
+GB2_2015<- GB2_2015[, !(colnames(GB2_2015) %in% "3D98")]
+#_______________________________________________________________
+#2016
+GB2_2016<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2016_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2016<-GB2_2016[c(0:25)] #filter columns
+colnames(GB2_2016)<-as.character(colnames(GB2_2016))
+
+#_______________________________________________________________
+#2017
+GB2_2017<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2017_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2017<-GB2_2017[c(0:36)] #filter columns
+GB2_2017<-GB2_2017[1:42,]
+
+#_______________________________________________________________
+#2018
+GB2_2018<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2018_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2018<-GB2_2018[c(1:39)] #filter columns
+GB2_2018<-GB2_2018[1:17,]
+
+GB2_2018<- GB2_2018[, !(colnames(GB2_2018) %in% "F44A")]
+
+#filter individuals that are observed less than 2 times
+#count number of non-NA presences per individual
+presence_counts_G2018 <- colSums(!is.na(GB2_2018[,-1]))  # exclude date column
+
+# Keep only individuals with >= 2 or 3 presences
+keep_IDs_G2018 <- names(presence_counts_G2018[presence_counts_G2018 >= 2])
+print(ncol(GB2_2018[,-1]));print(length(keep_IDs_G2018))
+
+GB2_2018 <- GB2_2018[, c("date", keep_IDs_G2018)]
+
+#_______________________________________________________________
+#2019
+GB2_2019<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2019_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2019<-GB2_2019[c(1:41)] #filter columns
+
+GB2_2019 <- GB2_2019 %>%
+  mutate(across(-date, as.character))
+
+#_______________________________________________________________
+#2020
+GB2_2020<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2020_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2020<-GB2_2020[c(1:51)] #filter columns
+GB2_2020<-GB2_2020[1:27,]
+
+GB2_2020 <- GB2_2020 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+GB2_2020 <- GB2_2020 %>%
+  mutate(across(-date, as.character))
+#_______________________________________________________________
+#2021
+GB2_2021<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2021_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+
+GB2_2021<-GB2_2021[c(1:56)] #filter columns
+GB2_2021<-GB2_2021[1:37,]
+
+GB2_2021 <- GB2_2021 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+colnames(GB2_2021)[colnames(GB2_2021) == "Date"] <- "date"
+
+GB2_2021<- GB2_2021 %>%
+  mutate(across(-date, as.character))
+
+#_______________________________________________________________
+#2022
+GB2_2022<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2022_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+
+GB2_2022<-GB2_2022[c(1:60)]#filter columns
+
+GB2_2022 <-GB2_2022 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+GB2_2022<-GB2_2022[, !(colnames(GB2_2022) %in% "15BF")]
+
+colnames(GB2_2022)[colnames(GB2_2022) == "Date"] <- "date"
+
+#filter individuals that are observed less than 2 times
+#count number of non-NA presences per individual
+presence_counts_G2022 <- colSums(!is.na(GB2_2022[,-1]))  # exclude date column
+
+# Keep only individuals with >= 2 or 3 presences
+keep_IDs_G2022 <- names(presence_counts_G2022[presence_counts_G2022 >= 2])
+print(ncol(GB2_2022[,-1]));print(length(keep_IDs_G2022))
+
+GB2_2022 <- GB2_2022[, c("date", keep_IDs_G2022)]
+
+GB2_2022<- GB2_2022 %>%
+  mutate(across(-date, as.character))
+
+#_______________________________________________________________
+#2023
+GB2_2023<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_GB2_2023_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+GB2_2023<-GB2_2023[c(1:70)] #filter columns
+
+GB2_2023<-GB2_2023 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+#GB2_2022<-GB2_2022[, !(colnames(GB2_2022) %in% "15BF")]
+
+colnames(GB2_2023)[colnames(GB2_2023) == "Date"] <- "date"
+
+GB2_2023<- GB2_2023 %>%
+  mutate(across(-date, as.character))
+```
+
+# Create GBI and association matrices, and edge lists from raw association datasets
+
+The **Group-by-Individual matrix** (GBI), is the format required for most function in the <igraph> and <asnipe> packages. We can create the GBI matrix from raw roost data by merging day and box number together, creating unique "group" of individuals that roosted all together in the same day in the same roost. This transforms the dataset into a presence/absence matrix. The column names remain the individual ID.  
+
+We can also create the **association matrices** that calculates the pairwise association using the SRI (simple ratio index)
+
+```{r}
+#Create a function that will create the GBI, the association matrices, the network objects and the edge list for all years 
+create_matrices <- function(data, year, colony, mother_daughter_df) {
+  
+  #--- Create GBI matrix
+  data_long <- data %>%
+    pivot_longer(
+      cols = -c(date),
+      names_to = "ID",
+      values_to = "box"
+    ) %>%
+    drop_na(box)
+  
+  data_long$daygroup <- as.factor(paste(data_long$date, data_long$box, sep = "_"))
+  
+  ind <- data.table(
+    ID = data_long$ID,
+    group = data_long$daygroup,
+    day = data_long$date
+  )
+  
+  # use the function in the asnipe package
+  GBI <- get_group_by_individual(ind, data_format = "individuals")
+  GBI <- as.matrix(GBI)
+  write.csv(GBI, here("data", "saved_matrices", colony, paste0("GBI_G", year, ".csv")), row.names = TRUE)
+  
+  # create network
+  net <- get_network(GBI, data_format = "GBI", association_index = "SRI")
+  write.csv(net, here("data", "saved_matrices", colony, paste0("net_G", year, ".csv")), row.names = TRUE)
+  
+  # create edge list
+  g <- graph_from_adjacency_matrix(net, mode = "undirected", weighted = TRUE, diag = FALSE)
+  edge <- igraph::as_data_frame(g, what = "edges")
+  
+  edge <- edge %>%
+    mutate(
+      pairID = ifelse(
+        from < to,
+        paste(from, to, sep = "-"),
+        paste(to, from, sep = "-")
+      )
+    )
+  
+  # Add pair type, either "mother-daughter" if the pairID is present in the mother_daughter df, otherwise "other"
+  edge <- edge %>%
+    mutate(
+      pair_type = ifelse(
+        pairID %in% mother_daughter_df$pairID[mother_daughter_df$year == year], 
+        "mother-daughter",
+        "other"
+      )
+    )
+  write.csv(edge, here("data", "saved_matrices", colony, paste0("edge_G", year, ".csv")), row.names = FALSE)
+  
+  return(edge)
+}
+```
+
+Run the function
+```{r}
+#| message: false
+#| warning: false
+#| output: false
+#| 
+years <- 2013:2023
+
+for (y in 2013:2023) {
+  create_matrices(
+    data = get(paste0("GB2_", y)),
+    year = y,
+    colony = "GB2",
+    mother_daughter_df = mother_daughter_GB2
+  )
+}
+```
+
+#### Create the edge list of all the years together
+```{r}
+edges_all <- lapply(2013:2023, function(y) {
+  #load the created edge lists for each year
+  df <- read.csv(here("data", "saved_matrices", "GB2", paste0("edge_G", y, ".csv")))
+  # add the year in a new column
+  df$year <- y
+  return(df)
+})
+
+edges_GB2 <- bind_rows(edges_all)
+#and save it 
+write.csv(edges_GB2, here("data","saved_matrices","GB2","edge_list_GB2.csv"), row.names = FALSE)
+```
+
+Then, we can do the same for the other colony
+
+## UA 
+#### load raw association data
+```{r}
+#| output: false
+#| code-fold: true
+#load data set and clean unnecessary columns
+# 2013
+UA_2013<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2013_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2013<-UA_2013[c(1:24)]
+colnames(UA_2013)[colnames(UA_2013) == "number"] <- "date"
+#_______________________________________________________________
+#2014
+UA_2014<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2014_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2014<-UA_2014[c(1:30)] #filter columns
+UA_2014<-UA_2014[1:55,]
+
+colnames(UA_2014)[colnames(UA_2014) == "number"] <- "date"
+UA_2014<- UA_2014[, !(colnames(UA_2014) %in% "Year")]
+UA_2014<- UA_2014[, !(colnames(UA_2014) %in% "Month")]
+UA_2014<- UA_2014[, !(colnames(UA_2014) %in% "Day")]
+#_______________________________________________________________
+#2015
+UA_2015<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2015_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2015<-UA_2015[c(1:23)] #filter columns
+UA_2015<-UA_2015[2:51,]
+
+UA_2015<-UA_2015 %>%
+  mutate(across(everything(), ~ replace(., . == "", NA)))
+
+#GB2_2022<-GB2_2022[, !(colnames(GB2_2022) %in% "15BF")]
+
+colnames(UA_2015)[colnames(UA_2015) == "number"] <- "date"
+#_______________________________________________________________
+#2016
+UA_2016<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2016_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2016<-UA_2016[c(1:27)] #filter columns
+UA_2016<-UA_2016[2:39,]
+
+#_______________________________________________________________
+#2017
+UA_2017<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2017_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2017<-UA_2017[c(1:30)] #filter columns
+
+#_______________________________________________________________
+#2018
+UA_2018<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2018_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2018<-UA_2018[c(1:27)] #filter columns
+names(UA_2018)[names(UA_2018) == "D6CC"] <- "FA5B"
+names(UA_2018)[names(UA_2018) == "0B43"] <- "101F"
+
+#_______________________________________________________________
+#2019
+UA_2019<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2019_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2019<-UA_2019[c(1:23)] #filter columns
+UA_2019<-UA_2019[1:41,]
+
+UA_2019<-UA_2019 %>%
+ mutate(across(everything(), ~ replace(., . == "", NA)))
+UA_2019 <- UA_2019 %>%
+  mutate(across(-date, as.character))
+
+#_______________________________________________________________
+#2020
+UA_2020<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2020_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2020<-UA_2020[c(1:24)] #filter columns
+UA_2020<-UA_2020[1:28,]
+
+UA_2020 <- UA_2020 %>%
+  mutate(across(-date, as.character))
+#_______________________________________________________________
+#2021
+UA_2021<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2021_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+
+UA_2021<-UA_2021[c(1:25)] #filter columns
+
+UA_2021<-UA_2021 %>%
+ mutate(across(everything(), ~ replace(., . == "", NA)))
+
+
+colnames(UA_2021)[colnames(UA_2021) == "Date"] <- "date"
+names(UA_2021)[names(UA_2021) == "9B39"] <- "F50E"
+names(UA_2021)[names(UA_2021) == "37F2"] <- "100F"
+
+UA_2021<- UA_2021 %>%
+  mutate(across(-date, as.character))
+
+#_______________________________________________________________
+#2022
+UA_2022<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2022_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2022<-UA_2022[c(1:22)] #filter columns
+UA_2022<-UA_2022[1:29,]
+
+colnames(UA_2022)[colnames(UA_2022) == "Date"] <- "date"
+
+UA_2022<- UA_2022 %>%
+  mutate(across(-date, as.character))
+
+#_______________________________________________________________
+#2023
+UA_2023<-read.csv(here("data","raw_roost_data","CSV_Dayroosts_UA_2023_juv.csv"),header = TRUE,sep = ";",row.names = NULL,check.names = FALSE)
+UA_2023<-UA_2023[c(1:29)]
+colnames(UA_2023)[colnames(UA_2023) == "Date"] <- "date"
+```
+
+# Create GBI and association matrices, and edge lists from raw association datasets
+```{r}
+#Create a function that will create the GBI, the association matrices (net), the network objects and the edge list for all years 
+create_matrices_UA <- function(data, year, colony, mother_daughter_df) {
+  
+  # Create GBI matrix
+  data_long <- data %>%
+    pivot_longer(
+      cols = -c(date),
+      names_to = "ID",
+      values_to = "box"
+    ) %>%
+    drop_na(box)
+  
+  data_long$daygroup <- as.factor(paste(data_long$date, data_long$box, sep = "_"))
+  
+  ind <- data.table(
+    ID = data_long$ID,
+    group = data_long$daygroup,
+    day = data_long$date
+  )
+  
+  #then use the function in the 'asnipe' package
+  GBI <- get_group_by_individual(ind, data_format = "individuals")
+  GBI <- as.matrix(GBI)
+  write.csv(GBI, here("data", "saved_matrices", colony, paste0("GBI_U", year, ".csv")), row.names = TRUE)
+  
+  # Create network
+  net <- get_network(GBI, data_format = "GBI", association_index = "SRI")
+  write.csv(net, here("data", "saved_matrices", colony, paste0("net_U", year, ".csv")), row.names = TRUE)
+  
+  # Create edge list
+  g <- graph_from_adjacency_matrix(net, mode = "undirected", weighted = TRUE, diag = FALSE)
+  edge <- igraph::as_data_frame(g, what = "edges")
+  
+  edge <- edge %>%
+    mutate(
+      pairID = ifelse(
+        from < to,
+        paste(from, to, sep = "-"),
+        paste(to, from, sep = "-")
+      )
+    )
+  
+  # Add pair type, either "mother-daughter" if the pairID is present in the mother_daughter df, otherwise "other"
+  edge <- edge %>%
+    mutate(
+      pair_type = ifelse(
+        pairID %in% mother_daughter_df$pairID[mother_daughter_df$year == year], 
+        "mother-daughter",
+        "other"
+      )
+    )
+  write.csv(edge, here("data", "saved_matrices", colony, paste0("edge_U", year, ".csv")), row.names = FALSE)
+  
+  return(edge)
+}
+```
+
+Run the function
+```{r}
+#| message: false
+#| warning: false
+#| output: false
+#| 
+years <- 2013:2023
+
+for (y in 2013:2023) {
+  create_matrices_UA(
+    data = get(paste0("UA_", y)),
+    year = y,
+    colony = "UA",
+    mother_daughter_df = mother_daughter_UA
+  )
+}
+```
+
+#### Create the edge list of all the years together
+```{r}
+edges_all <- lapply(2013:2023, function(y) {
+  #load the created edge lists for each year
+  df <- read.csv(here("data", "saved_matrices", "UA", paste0("edge_U", y, ".csv")))
+  # add the year in a new column
+  df$year <- y
+  return(df)
+})
+
+edges_UA <- bind_rows(edges_all)
+#and save it 
+write.csv(edges_UA, here("data","saved_matrices","UA","edge_list_UA.csv"), row.names = FALSE)
+```
+
+# Mother - non-related daughter datasets
+Creation of a lists that state associations between mothers and non-related daughters, by creating a function that goes into the mother-daughter df, and assign them in a role for a specific year, either "mother" or "daughter"
+
+```{r}
+make_mom_juv_for_year <- function(y, edges, md_table) {
+  md_y <- md_table %>% filter(year == y)
+
+  # bats that matter in this year -> mothers and daughters only
+  bats_y <- unique(c(md_y$rfid_mom, md_y$rfid_off))
+
+  edges_y <- edges %>%
+    filter(year == y) %>%
+    filter(from %in% bats_y | to %in% bats_y)
+
+  # lookup table with roles
+  lookup_y <- md_y %>%
+    pivot_longer(
+      cols = c(rfid_mom, rfid_off),
+      names_to = "role",
+      values_to = "batID"
+    ) %>%
+    distinct(batID, role)
+
+  edges_y <- edges_y %>%
+    left_join(lookup_y, by = c("from" = "batID")) %>%
+    rename(from_role = role) %>%
+    left_join(lookup_y, by = c("to" = "batID")) %>%
+    rename(to_role = role)
+
+  # ordered pairID, to ensure correct matching
+  make_pairID <- function(x, y) {
+    ifelse(x < y, paste(x, y, sep = "-"), paste(y, x, sep = "-"))
+  }
+
+  edges_y <- edges_y %>%
+    mutate(pairID = make_pairID(from, to))
+
+  # identify true MD pairs for this year
+  true_MD_y <- md_y %>%
+    mutate(pairID = make_pairID(rfid_mom, rfid_off)) %>%
+    select(pairID)
+
+  edges_y <- edges_y %>%
+    mutate(
+    pair_type_2 = case_when(
+      # true mother–daughter
+      pairID %in% true_MD_y$pairID ~ "mother-daughter",
+
+      # mother with a non-own juvenile
+      ((from_role == "rfid_mom" & to_role == "rfid_off") |
+        (from_role == "rfid_off" & to_role == "rfid_mom")
+      ) ~ "mother-random-juvenile",
+
+      # everything else
+      TRUE ~ "other"
+    )
+  )
+
+}
+```
+
+Run function for both colonies
+```{r}
+years <- sort(unique(edges_GB2$year))
+
+#for GB2
+mom_juv_GB2 <- map_dfr(
+  years,
+  make_mom_juv_for_year,
+  edges = edges_GB2,
+  md_table = mother_daughter_GB2
+)
+
+
+mom_juv_UA <- map_dfr(
+  years,
+  make_mom_juv_for_year,
+  edges = edges_UA,
+  md_table = mother_daughter_UA
+)
+#save datasets
+write.csv(mom_juv_GB2, here("data","saved_matrices","GB2","mom_juv_GB2.csv"), row.names = FALSE)
+write.csv(mom_juv_UA, here("data","saved_matrices","UA","mom_juv_UA.csv"), row.names = FALSE)
+```

@@ -1,0 +1,604 @@
+---
+title: "Hypothesis 2 -  Associations stability"
+author: 
+  name: "Flore Michel"
+  email: flore.michel@unil.ch
+  affiliation:
+    name: University of Lausanne, Departement of Ecology and Evolution
+execute:                            # Global options for code chunks
+  echo: true                        # Show code globally
+  warning: false                    # Hide warnings globally
+  message: false
+  freeze: auto                      # Only re-render if code changes
+  cache: true                       # Cache results (best for heavy computations)
+format:                             # Global options for rendering the document
+  html:                              # Defines render format in this case html
+    margin-top: 30px
+    toc: true                       # Includes table of content
+    toc-location: left              # Sets the location of the toc
+    toc-depth: 2                    # Sets the number of levels for the toc
+    number-sections: true           # Add automatic section number
+    number-depth: 2                 # Sets the maximum numberin level e.g. 2.2.1
+    #code-fold: true                 # Code chunk can be expanded
+    fig-cap-location: bottom        # Location of figure captions [top, bottom]
+    lightbox: true                  # When clicking on a figure it is expanded
+    embed-resources: true           # Make the report a stand-alone for sharing
+    theme:                          # Set the theme of the report 
+      light: litera                   # [default, cerulean, cosmo, flatly, journal, ...]
+      dark: slate                   # [cyborg, darkly, solar, superhero, vapor, ...]
+#csl: bib/apa.csl                    # Citation style for rendering the references
+    bibliography: references.bib
+---
+
+# overview
+
+This script addresses **Hypothesis 3**: do bonds formed early in life persist and strengthen across years, and does this differ between pair types? It also assess how temporal pattern can be influenced by demographic context, by comparing two colonies. 
+
+In this analysis, we measured association strength from the entire year (in contrast to H1). The daughter's first year is therefore excluded from the analysis, since juveniles are marked in late August and do not have a full summer of presence to measure association strength.
+
+Three pair types are compared:
+
+mother-daughter (MD), mother paired with an unrelated juvenile female and all remaining female dyads (other)
+
+The predictor in this analysis is **relationship age**, which is defined differently per pair type:
+- MD pairs: daughter age (years since birth year recorded in mother-daughter file)
+- all other pairs: years since the pair was first observed together in the dataset
+  
+Pairs already present in 2013 are marked with "unknown_age" as a control, since their true relationship age is unknown.
+
+---
+
+```{r packages}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(here)
+library(glmmTMB)
+library(DHARMa)
+library(performance)
+library(ggeffects)
+library(broom.mixed)
+```
+
+---
+
+# 1  load data (full years)
+
+## 1.1 yearly edge list 
+```{r}
+#| echo: true
+#GB2 —————
+edge_G2013<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2013.csv"))
+edge_G2013 <- edge_G2013 %>% mutate(year = 2013)
+edge_G2014<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2014.csv"));
+edge_G2014 <- edge_G2014 %>% mutate(year = 2014)
+edge_G2015<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2015.csv"));
+edge_G2015 <- edge_G2015 %>% mutate(year = 2015)
+edge_G2016<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2016.csv"));edge_G2016 <- edge_G2016 %>% select(from,to,weight, pair_type);
+edge_G2016 <- edge_G2016 %>% mutate(year = 2016)
+edge_G2017<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2017.csv"));
+edge_G2017 <- edge_G2017 %>% mutate(year = 2017)
+edge_G2018<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2018.csv"));
+edge_G2018 <- edge_G2018 %>% mutate(year = 2018)
+edge_G2019<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2019.csv"));
+edge_G2019 <- edge_G2019 %>% mutate(year = 2019)
+edge_G2020<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2020.csv"));
+edge_G2020 <- edge_G2020 %>% mutate(year = 2020)
+edge_G2021<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2021.csv"));
+edge_G2021 <- edge_G2021 %>% mutate(year = 2021)
+edge_G2022<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2022.csv")); 
+edge_G2022 <- edge_G2022 %>% mutate(year = 2022)
+edge_G2023<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2023.csv"));
+edge_G2023 <- edge_G2023 %>% mutate(year = 2023)
+
+#create global edge list
+edge_GB2_list<-list("2013"=edge_G2013,"2014"=edge_G2014,"2015"=edge_G2015,"2016"=edge_G2016,"2017"=edge_G2017,"2018"=edge_G2018,"2019"=edge_G2019,"2020"=edge_G2020,"2021"=edge_G2021,"2022"=edge_G2022,"2023"=edge_G2023)
+
+edges_GB2_full<-rbind(edge_G2013,edge_G2014,edge_G2015,edge_G2016,edge_G2017,edge_G2018,edge_G2019,edge_G2020,edge_G2021,edge_G2022,edge_G2023)
+
+edges_GB2_full$weight<-as.numeric(edges_GB2_full$weight)
+
+#UA ————
+edge_U2013<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2013.csv"))
+edge_U2013 <- edge_U2013 %>% mutate(year = 2013)
+edge_U2014<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2014.csv"));
+edge_U2014 <- edge_U2014 %>% mutate(year = 2014)
+edge_U2015<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2015.csv"));
+edge_U2015 <- edge_U2015 %>% mutate(year = 2015)
+edge_U2016<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2016.csv"));edge_U2016 <- edge_U2016 %>% select(from,to,weight, pair_type);
+edge_U2016 <- edge_U2016 %>% mutate(year = 2016)
+edge_U2017<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2017.csv"));
+edge_U2017 <- edge_U2017 %>% mutate(year = 2017)
+edge_U2018<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2018.csv"));
+edge_U2018 <- edge_U2018 %>% mutate(year = 2018)
+edge_U2019<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2019.csv"));
+edge_U2019 <- edge_U2019 %>% mutate(year = 2019)
+edge_U2020<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2020.csv"));
+edge_U2020 <- edge_U2020 %>% mutate(year = 2020)
+edge_U2021<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2021.csv"));
+edge_U2021 <- edge_U2021 %>% mutate(year = 2021)
+edge_U2022<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2022.csv")); 
+edge_U2022 <- edge_U2022 %>% mutate(year = 2022)
+edge_U2023<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2023.csv"));
+edge_U2023 <- edge_U2023 %>% mutate(year = 2023)
+
+#create global edge list
+edge_UA_list<-list("2013"=edge_U2013,"2014"=edge_U2014,"2015"=edge_U2015,"2016"=edge_U2016,"2017"=edge_U2017,"2018"=edge_U2018,"2019"=edge_U2019,"2020"=edge_U2020,"2021"=edge_U2021,"2022"=edge_U2022,"2023"=edge_U2023)
+edges_UA_full<-rbind(edge_U2013,edge_U2014,edge_U2015,edge_U2016,edge_U2017,edge_U2018,edge_U2019,edge_U2020,edge_U2021,edge_U2022,edge_U2023)
+edges_UA_full$weight<-as.numeric(edges_UA_full$weight)
+```
+
+## 1.2  mother-daughter files
+
+```{r load}
+mother_daughter_GB2 <- read.csv(here("data", "mother_daughter_GB2.csv")) %>%
+  mutate(pairID = as.character(pairID))
+
+mother_daughter_UA <- read.csv(here("data", "mother_daughter_UA.csv")) %>%
+  mutate(pairID = as.character(pairID))
+```
+
+## 1.3  mother-unrelated-daughter files
+
+```{r load}
+mom_juv_GB2 <- read.csv(here("data", "saved_matrices", "GB2", "mom_juv_GB2.csv")) %>%
+  mutate(pair_type_2 = recode(pair_type_2,
+                              "mother-random-juvenile" = "mother-unrelated-daughter"))
+
+mom_juv_UA <- read.csv(here("data", "saved_matrices", "UA", "mom_juv_UA.csv")) %>%
+  mutate(pair_type_2 = recode(pair_type_2,
+                              "mother-random-juvenile" = "mother-unrelated-daughter"))
+```
+
+## 1.4  colony size
+
+```{r load-colony-size}
+colony_size_GB2 <- read.csv(
+  here("data", "saved_matrices", "GB2", "colony_size_df.csv")
+) %>% mutate(year = as.numeric(year))
+
+colony_size_UA <- read.csv(
+  here("data", "saved_matrices", "UA", "colony_size_UA.csv")
+) %>% mutate(year = as.numeric(year))
+```
+
+---
+
+# 2  Prepare edge lists
+
+# 2.1 function
+This add pairID, relation_age and pair type labels to the edge lists
+- relation_age for MD pairs = daughter age (years since birth)
+- relation_age for other pairs = years since first observed together
+
+add "unkown_age" column for the control 
+
+and remove daughter's first summer (daughter_age == 1) (since the year is incomplete)
+```{r}
+prepare_edges <- function(edges_full, md_file, mom_juv, colony_size_df) {
+  
+  # create sorted pairID
+  df <- edges_full %>%
+    mutate(pairID = if_else(from < to,
+                            paste(from, to, sep = "-"),
+                            paste(to,   from, sep = "-")))
+  
+  # label MD pairs
+  df <- df %>%
+    mutate(ultimate_pair_type = if_else(
+      pairID %in% md_file$pairID, "mother-daughter", "other"
+    ))
+  
+  # add daughter age for MD pairs
+  df <- df %>%
+    group_by(pairID) %>%
+    mutate(
+      first_year_md = md_file$year[match(pairID, md_file$pairID)],
+      daughter_age  = if_else(
+        is.na(first_year_md), NA_real_, as.numeric(year - first_year_md + 1)
+      )
+    ) %>%
+    ungroup()
+  
+  # remove first summer of MD pairs
+  df <- df %>%
+    filter(!(ultimate_pair_type == "mother-daughter" & daughter_age == 1))
+  
+  # relation age: daughter_age for MD, years-since-first for others
+  df <- df %>%
+    group_by(pairID) %>%
+    mutate(first_year_overall = min(year)) %>%
+    ungroup() %>%
+    mutate(relation_age = if_else(
+      ultimate_pair_type == "mother-daughter",
+      daughter_age,
+      as.numeric(year - first_year_overall + 1)
+    ))
+  
+  # unknown_age flag: other pairs already present in 2013
+  df <- df %>%
+    group_by(pairID) %>%
+    mutate(unknown_age = factor(if_else(
+      ultimate_pair_type == "other" & first_year_overall == 2013, TRUE, FALSE
+    ))) %>%
+    ungroup()
+  
+  # add mother-unrelated daughter labels
+  df <- df %>%
+    left_join(mom_juv %>% select(pairID, pair_type_2), by = "pairID") %>%
+    mutate(ultimate_pair_type = case_when(
+      pair_type_2 == "mother-daughter"           ~ "mother-daughter",
+      pair_type_2 == "mother-unrelated-daughter" ~ "mother-unrelated-daughter",
+      TRUE                                       ~ ultimate_pair_type
+    ))
+  
+  # add colony size and center it
+  df <- df %>%
+    left_join(colony_size_df, by = "year") %>%
+    mutate(colony_size_c = as.numeric(
+      scale(colony_size, center = TRUE, scale = FALSE)
+    ))
+  
+  # beta transformation before model
+  n <- nrow(df)
+  df <- df %>%
+    mutate(weight_beta = (weight * (n - 1) + 0.5) / n)
+  
+  # pair type as factor and relevel 
+  df <- df %>%
+    mutate(
+      ultimate_pair_type = factor(ultimate_pair_type,
+                                  levels = c("other",
+                                             "mother-unrelated-daughter",
+                                             "mother-daughter")),
+      # center relation_age to reduce collinearity in interaction model
+      relation_age_c = relation_age - mean(relation_age, na.rm = TRUE)
+    )
+  
+  df
+}
+```
+
+# 2.2 edge list
+```{r}
+edges_GB2_final <- prepare_edges(edges_GB2_full, mother_daughter_GB2,
+                                 mom_juv_GB2, colony_size_GB2)
+
+edges_UA_final  <- prepare_edges(edges_UA_full,  mother_daughter_UA,
+                                 mom_juv_UA,  colony_size_UA)
+```
+
+# 2.3 check 
+How many "unkown_age" 
+```{r}
+# GB2
+edges_GB2_final %>%
+  summarise(
+    total_dyads   = n_distinct(pairID),
+    unknown_age_dyads = n_distinct(pairID[unknown_age == TRUE]),
+    prop_unknown  = round(unknown_age_dyads / total_dyads, 2)
+  )
+
+# UA
+edges_UA_final %>%
+  summarise(
+    total_dyads   = n_distinct(pairID),
+    unknown_age_dyads = n_distinct(pairID[unknown_age == TRUE]),
+    prop_unknown  = round(unknown_age_dyads / total_dyads, 2)
+  )
+```
+
+Check relationship age range
+```{r}
+edges_GB2_final %>% summarise(max_ra = max(relation_age, na.rm = TRUE),
+                               mean_ra = mean(relation_age, na.rm = TRUE))
+edges_UA_final %>%  summarise(max_ra = max(relation_age, na.rm = TRUE),
+                               mean_ra = mean(relation_age, na.rm = TRUE))
+```
+
+
+---
+
+# 3  Fit models
+Two models per colony: main effects (no interaction) and interaction between relation_age and pair type. We are mainly interested in the interaction model, to test whether the temporal trajectory of association strength differs between pair type. However, we are checking whether the interaction is meaningful here
+
+```{r fit-models}
+#GB2—————
+model_age_GB2 <- glmmTMB(
+  weight_beta ~ relation_age_c + ultimate_pair_type + colony_size_c + unknown_age +
+    (1 | pairID) + (1 | year),
+  data   = edges_GB2_final,
+  family = beta_family()
+)
+
+model_age_int_GB2 <- glmmTMB(
+  weight_beta ~ relation_age_c * ultimate_pair_type + colony_size_c + unknown_age +
+    (1 | pairID) + (1 | year),
+  data   = edges_GB2_final,
+  family = beta_family()
+)
+
+# UA—————
+model_age_UA <- glmmTMB(
+  weight_beta ~ relation_age_c + ultimate_pair_type + colony_size_c + unknown_age +
+    (1 | pairID) + (1 | year),
+  data   = edges_UA_final,
+  family = beta_family()
+)
+
+model_age_int_UA <- glmmTMB(
+  weight_beta ~ relation_age_c * ultimate_pair_type + colony_size_c + unknown_age +
+    (1 | pairID) + (1 | year),
+  data   = edges_UA_final,
+  family = beta_family()
+)
+```
+
+Summaries
+```{r}
+summary(model_age_GB2);    summary(model_age_int_GB2)
+summary(model_age_UA);     summary(model_age_int_UA)
+```
+
+# 4 Models diagnostics
+
+```{r diagnostics}
+check_model <- function(model, label) {
+  cat("\n──", label, "──\n")
+  print(check_overdispersion(model))
+  print(check_collinearity(model))
+  sim <- simulateResiduals(model, n = 1000)
+  plot(sim, main = label)
+}
+
+check_model(model_age_GB2,     "GB2 — main effects")
+check_model(model_age_int_GB2, "GB2 — interaction")
+check_model(model_age_UA,      "UA  — main effects")
+check_model(model_age_int_UA,  "UA  — interaction")
+```
+
+KS test and outlier test are significant across all models but is expected given the large sample size. permutation-based inference further accounts for any residual non-independence in our data
+
+---
+
+# 5  Permutations 
+Node-label permutations within each year (1000 permutations) 
+
+## 5.1 Functions
+#### p-value function (two-tailed)
+```{r}
+#two-tailed permutation p-values
+compute_perm_pvalues <- function(obs_coef, perm_matrix) {
+  sapply(names(obs_coef), function(nm)
+    mean(abs(perm_matrix[, nm]) >= abs(obs_coef[nm]))
+  )
+}
+```
+
+#### Permutation results table
+```{r}
+make_perm_table <- function(obs_coef, perm_matrix, p_values) {
+  data.frame(term = names(obs_coef), observed = as.numeric(obs_coef),
+             stringsAsFactors = FALSE) %>%
+    left_join(
+      as.data.frame(perm_matrix) %>%
+        pivot_longer(everything(), names_to = "term", values_to = "value") %>%
+        group_by(term) %>%
+        summarise(perm_mean = mean(value), perm_sd = sd(value), .groups = "drop"),
+      by = "term"
+    ) %>%
+    mutate(p_value = p_values[term]) %>%
+    arrange(desc(observed))
+}
+```
+
+## 5.2  GB2
+```{r}
+set.seed(23)
+n_perm <- 1000
+
+coef_names_GB2 <- c(
+  "relation_age_c",
+  "ultimate_pair_typemother-unrelated-daughter",
+  "ultimate_pair_typemother-daughter",
+  "colony_size_c"
+)
+coef_names_int_GB2 <- c(
+  "relation_age_c",
+  "ultimate_pair_typemother-unrelated-daughter",
+  "ultimate_pair_typemother-daughter",
+  "colony_size_c",
+  "relation_age_c:ultimate_pair_typemother-unrelated-daughter",
+  "relation_age_c:ultimate_pair_typemother-daughter"
+)
+
+obs_GB2     <- fixef(model_age_GB2)$cond[coef_names_GB2]
+obs_int_GB2 <- fixef(model_age_int_GB2)$cond[coef_names_int_GB2]
+
+perm_GB2     <- matrix(NA, n_perm, length(coef_names_GB2),
+                       dimnames = list(NULL, coef_names_GB2))
+perm_int_GB2 <- matrix(NA, n_perm, length(coef_names_int_GB2),
+                       dimnames = list(NULL, coef_names_int_GB2))
+
+for (i in seq_len(n_perm)) {
+  d <- edges_GB2_final %>%
+    group_by(year) %>%
+    mutate(ultimate_pair_type = sample(ultimate_pair_type)) %>%
+    ungroup()
+  
+  m <- glmmTMB(
+    weight_beta ~ relation_age_c + ultimate_pair_type + colony_size_c + unknown_age +
+      (1 | pairID) + (1 | year),
+    family = beta_family(), data = d
+  )
+  perm_GB2[i, ] <- fixef(m)$cond[coef_names_GB2]
+  
+  m_int <- glmmTMB(
+    weight_beta ~ relation_age_c * ultimate_pair_type + colony_size_c + unknown_age +
+      (1 | pairID) + (1 | year),
+    family = beta_family(), data = d
+  )
+  perm_int_GB2[i, ] <- fixef(m_int)$cond[coef_names_int_GB2]
+}
+
+save(perm_GB2, perm_int_GB2,
+     file = here("results", "H3_permutations_GB2.RData"))
+```
+
+```{r perm gb2 - pval}
+p_GB2     <- compute_perm_pvalues(obs_GB2,     perm_GB2)
+p_int_GB2 <- compute_perm_pvalues(obs_int_GB2, perm_int_GB2)
+
+table_GB2     <- make_perm_table(obs_GB2,     perm_GB2,     p_GB2)
+table_int_GB2 <- make_perm_table(obs_int_GB2, perm_int_GB2, p_int_GB2)
+
+cat("GB2 main effects ---\n");   print(table_GB2)
+cat("\nGB2 interaction ---\n");  print(table_int_GB2)
+
+write.csv(table_GB2,
+          here("results", "tables", "H3_perm_GB2_main.csv"),        row.names = FALSE)
+write.csv(table_int_GB2,
+          here("results", "tables", "H3_perm_GB2_interaction.csv"), row.names = FALSE)
+```
+
+## 6.2  UA
+
+```{r perm ua, cache=TRUE}
+set.seed(23)
+
+#coeff
+coef_names_UA <- c(
+  "relation_age_c",
+  "ultimate_pair_typemother-unrelated-daughter",
+  "ultimate_pair_typemother-daughter",
+  "colony_size_c"
+)
+coef_names_int_UA <- c(
+  "relation_age_c",
+  "ultimate_pair_typemother-unrelated-daughter",
+  "ultimate_pair_typemother-daughter",
+  "colony_size_c",
+  "relation_age_c:ultimate_pair_typemother-unrelated-daughter",
+  "relation_age_c:ultimate_pair_typemother-daughter"
+)
+
+obs_UA     <- fixef(model_age_UA)$cond[coef_names_UA]
+obs_int_UA <- fixef(model_age_int_UA)$cond[coef_names_int_UA]
+
+perm_UA     <- matrix(NA, n_perm, length(coef_names_UA),
+                      dimnames = list(NULL, coef_names_UA))
+perm_int_UA <- matrix(NA, n_perm, length(coef_names_int_UA),
+                      dimnames = list(NULL, coef_names_int_UA))
+
+for (i in seq_len(n_perm)) {
+  d <- edges_UA_final %>%
+    group_by(year) %>%
+    mutate(ultimate_pair_type = sample(ultimate_pair_type)) %>%
+    ungroup()
+  
+  m <- glmmTMB(
+    weight_beta ~ relation_age_c + ultimate_pair_type + colony_size_c + unknown_age +
+      (1 | pairID) + (1 | year),
+    family = beta_family(), data = d
+  )
+  perm_UA[i, ] <- fixef(m)$cond[coef_names_UA]
+  
+  m_int <- glmmTMB(
+    weight_beta ~ relation_age_c * ultimate_pair_type + colony_size_c + unknown_age +
+      (1 | pairID) + (1 | year),
+    family = beta_family(), data = d
+  )
+  perm_int_UA[i, ] <- fixef(m_int)$cond[coef_names_int_UA]
+}
+
+save(perm_UA, perm_int_UA,
+     file = here("results", "H3_permutations_UA.RData"))
+```
+
+```{r perm-ua-pvalues}
+p_UA     <- compute_perm_pvalues(obs_UA,     perm_UA)
+p_int_UA <- compute_perm_pvalues(obs_int_UA, perm_int_UA)
+
+table_UA     <- make_perm_table(obs_UA,     perm_UA,     p_UA)
+table_int_UA <- make_perm_table(obs_int_UA, perm_int_UA, p_int_UA)
+
+cat("UA main effects ---\n");    print(table_UA)
+cat("\n UA interaction ---\n");   print(table_int_UA)
+
+write.csv(table_UA,
+          here("results", "tables", "H3_perm_UA_main.csv"),        row.names = FALSE)
+write.csv(table_int_UA,
+          here("results", "tables", "H3_perm_UA_interaction.csv"), row.names = FALSE)
+```
+
+---
+
+# 7  plot — model predictions
+
+Relation age is back-transform to real years by adding the mean relation age back
+```{r mean}
+cat("mean relation_age GB2:", round(mean(edges_GB2_final$relation_age, na.rm = TRUE), 2), "\n")
+cat("mean relation_age UA: ", round(mean(edges_UA_final$relation_age,  na.rm = TRUE), 2), "\n")
+```
+
+```{r predictions}
+pair_colours <- c(
+  "mother-daughter"           = "#C2347A",
+  "mother-unrelated-daughter" = "#004488",
+  "other"                     = "#BBBBBB"
+)
+
+pred_GB2 <- ggpredict(model_age_int_GB2,
+                      terms = c("relation_age_c", "ultimate_pair_type"),
+                      bias_correction = TRUE)
+
+pred_UA  <- ggpredict(model_age_int_UA,
+                      terms = c("relation_age_c", "ultimate_pair_type"),
+                      bias_correction = TRUE)
+
+make_pred_plot <- function(pred, title, show_y = TRUE) {
+  ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+                alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 1) +
+    scale_colour_manual(values = pair_colours,
+                        name   = "pair type",
+                        labels = c("other",
+                                   "mother–unrelated juvenile",
+                                   "mother–daughter")) +
+    scale_fill_manual(values = pair_colours,
+                      name   = "pair type",
+                      labels = c("other",
+                                 "mother–unrelated juvenile",
+                                 "mother–daughter")) +
+    
+    scale_x_continuous(breaks = seq(-3, 8, by = 1), 
+                       labels = seq(-3, 8, by = 1) + 3) +
+
+    
+    coord_cartesian(ylim = c(0.1, 0.9)) +
+  
+    labs(title = title,
+         x = "relationship age (years)",
+         y = if (show_y) "Predicted association strength (SRI)" else NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom",
+          plot.title = element_text(hjust = 0.5, size = 12, face = "plain"))
+}
+
+p1 <- make_pred_plot(pred_GB2, "Colony GB2", show_y = TRUE)
+p2 <- make_pred_plot(pred_UA,  "Colony UA",  show_y = FALSE)
+
+combined_plot <- p1 + p2 +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+combined_plot
+
+ggsave(here("results", "figures", "H3_age_modelprediction.png"),
+       plot = combined_plot, width = 7, height = 4, dpi = 300)
+```
+
+---
+
