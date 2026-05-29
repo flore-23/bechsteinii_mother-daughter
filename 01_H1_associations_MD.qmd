@@ -640,6 +640,7 @@ write.csv(table_UA_int,
 # 5  Visualisation — model predictions
 Using ggpredict
 ```{r model-predictions}
+
 pred_GB2 <- ggpredict(model_GB2_int,
                       terms = c("colony_size_c [-25:25 by=1]", "pair_type_2"),
                       bias_correction = TRUE)
@@ -659,8 +660,16 @@ make_pred_plot <- function(pred, title, show_y = TRUE) {
     geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
                 alpha = 0.2, colour = NA) +
     geom_line(linewidth = 1) +
-    scale_colour_manual(values = pair_colours) +
-    scale_fill_manual(values = pair_colours) +
+    scale_colour_manual(values = pair_colours,
+                        name   = "pair type",
+                        labels = c("other",
+                                   "mother–unrelated juvenile",
+                                   "mother–daughter")) +
+    scale_fill_manual(values = pair_colours,
+                      name   = "pair type",
+                      labels = c("other",
+                                 "mother–unrelated juvenile",
+                                 "mother–daughter")) +
     labs(title = title,
          x = "Centred colony size",
          y = if (show_y) "Predicted association strength (SRI)" else NULL,
