@@ -213,13 +213,13 @@ GB2_2023<- GB2_2023 %>%
 
 The **Group-by-Individual matrix** (GBI), is the format required for most function in the <igraph> and <asnipe> packages. We can create the GBI matrix from raw roost data by merging day and box number together, creating unique "group" of individuals that roosted all together in the same day in the same roost. This transforms the dataset into a presence/absence matrix. The column names remain the individual ID.  
 
-We can also create the **association matrices** that is a 
+We can also create the **association matrices** that calculates the pairwise association using the SRI (simple ratio index)
 
 ```{r}
-#Create a function that will create the GBI, the association matrices (net), the network objects and the edge list for all years 
+#Create a function that will create the GBI, the association matrices, the network objects and the edge list for all years 
 create_matrices <- function(data, year, colony, mother_daughter_df) {
   
-  # Create GBI matrix
+  #--- Create GBI matrix
   data_long <- data %>%
     pivot_longer(
       cols = -c(date),
@@ -236,16 +236,16 @@ create_matrices <- function(data, year, colony, mother_daughter_df) {
     day = data_long$date
   )
   
-  #then use the function in the 'asnipe' package
+  # use the function in the asnipe package
   GBI <- get_group_by_individual(ind, data_format = "individuals")
   GBI <- as.matrix(GBI)
   write.csv(GBI, here("data", "saved_matrices", colony, paste0("GBI_G", year, ".csv")), row.names = TRUE)
   
-  # Create network
+  # create network
   net <- get_network(GBI, data_format = "GBI", association_index = "SRI")
   write.csv(net, here("data", "saved_matrices", colony, paste0("net_G", year, ".csv")), row.names = TRUE)
   
-  # Create edge list
+  # create edge list
   g <- graph_from_adjacency_matrix(net, mode = "undirected", weighted = TRUE, diag = FALSE)
   edge <- igraph::as_data_frame(g, what = "edges")
   
@@ -275,7 +275,6 @@ create_matrices <- function(data, year, colony, mother_daughter_df) {
 
 Run the function
 ```{r}
-#| label: run function
 #| message: false
 #| warning: false
 #| output: false
@@ -312,7 +311,6 @@ Then, we can do the same for the other colony
 ## UA 
 #### load raw association data
 ```{r}
-#| label: load roost df
 #| output: false
 #| code-fold: true
 #load data set and clean unnecessary columns
@@ -475,7 +473,6 @@ create_matrices_UA <- function(data, year, colony, mother_daughter_df) {
 
 Run the function
 ```{r}
-#| label: run function for UA
 #| message: false
 #| warning: false
 #| output: false
