@@ -58,12 +58,12 @@ library(ggraph)
 
 ```{r load-edges}
 edges_GB2 <- read.csv(
-  here("data", "saved_matrices", "GB2", "edge_list_GB2.csv"),
+  here("data_publish", "saved_matrices", "GB2", "edge_list_GB2.csv"),
   header = TRUE, sep = ",", check.names = FALSE
 )
 
 edges_UA <- read.csv(
-  here("data", "saved_matrices", "UA", "edge_list_UA.csv"),
+  here("data_publish", "saved_matrices", "UA", "edge_list_UA.csv"),
   header = TRUE, sep = ",", check.names = FALSE
 )
 ```
@@ -73,30 +73,30 @@ edges_UA <- read.csv(
 ```{r load-networks}
 #| echo: true
 #GB2
-net_G2013<-read.csv(here("data","saved_matrices","GB2","net_G2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2013 <- as.matrix(net_G2013)
-net_G2014<-read.csv(here("data","saved_matrices","GB2","net_G2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2014 <- as.matrix(net_G2014)
-net_G2015<-read.csv(here("data","saved_matrices","GB2","net_G2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2015 <- as.matrix(net_G2015)
-net_G2016<-read.csv(here("data","saved_matrices","GB2","net_G2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2016 <- as.matrix(net_G2016)
-net_G2017<-read.csv(here("data","saved_matrices","GB2","net_G2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2017 <- as.matrix(net_G2017)
-net_G2018<-read.csv(here("data","saved_matrices","GB2","net_G2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2018 <- as.matrix(net_G2018)
-net_G2019<-read.csv(here("data","saved_matrices","GB2","net_G2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2019 <- as.matrix(net_G2019)
-net_G2020<-read.csv(here("data","saved_matrices","GB2","net_G2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2020 <- as.matrix(net_G2020)
-net_G2021<-read.csv(here("data","saved_matrices","GB2","net_G2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2021 <- as.matrix(net_G2021)
-net_G2022<-read.csv(here("data","saved_matrices","GB2","net_G2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2022 <- as.matrix(net_G2022)
-net_G2023<-read.csv(here("data","saved_matrices","GB2","net_G2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2023 <- as.matrix(net_G2023)
+net_G2013<-read.csv(here("data_publish","saved_matrices","GB2","net_G2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2013 <- as.matrix(net_G2013)
+net_G2014<-read.csv(here("data_publish","saved_matrices","GB2","net_G2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2014 <- as.matrix(net_G2014)
+net_G2015<-read.csv(here("data_publish","saved_matrices","GB2","net_G2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2015 <- as.matrix(net_G2015)
+net_G2016<-read.csv(here("data_publish","saved_matrices","GB2","net_G2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2016 <- as.matrix(net_G2016)
+net_G2017<-read.csv(here("data_publish","saved_matrices","GB2","net_G2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2017 <- as.matrix(net_G2017)
+net_G2018<-read.csv(here("data_publish","saved_matrices","GB2","net_G2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2018 <- as.matrix(net_G2018)
+net_G2019<-read.csv(here("data_publish","saved_matrices","GB2","net_G2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2019 <- as.matrix(net_G2019)
+net_G2020<-read.csv(here("data_publish","saved_matrices","GB2","net_G2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2020 <- as.matrix(net_G2020)
+net_G2021<-read.csv(here("data_publish","saved_matrices","GB2","net_G2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2021 <- as.matrix(net_G2021)
+net_G2022<-read.csv(here("data_publish","saved_matrices","GB2","net_G2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2022 <- as.matrix(net_G2022)
+net_G2023<-read.csv(here("data_publish","saved_matrices","GB2","net_G2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_G2023 <- as.matrix(net_G2023)
 
 #UA
-net_U2013<-read.csv(here("data","saved_matrices","UA","net_U2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2013 <- as.matrix(net_U2013)
-net_U2014<-read.csv(here("data","saved_matrices","UA","net_U2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2014 <- as.matrix(net_U2014)
-net_U2015<-read.csv(here("data","saved_matrices","UA","net_U2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2015 <- as.matrix(net_U2015)
-net_U2016<-read.csv(here("data","saved_matrices","UA","net_U2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2016 <- as.matrix(net_U2016)
-net_U2017<-read.csv(here("data","saved_matrices","UA","net_U2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2017 <- as.matrix(net_U2017)
-net_U2018<-read.csv(here("data","saved_matrices","UA","net_U2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2018 <- as.matrix(net_U2018)
-net_U2019<-read.csv(here("data","saved_matrices","UA","net_U2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2019 <- as.matrix(net_U2019)
-net_U2020<-read.csv(here("data","saved_matrices","UA","net_U2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2020 <- as.matrix(net_U2020)
-net_U2021<-read.csv(here("data","saved_matrices","UA","net_U2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2021 <- as.matrix(net_U2021)
-net_U2022<-read.csv(here("data","saved_matrices","UA","net_U2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2022 <- as.matrix(net_U2022)
-net_U2023<-read.csv(here("data","saved_matrices","UA","net_U2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2023 <- as.matrix(net_U2023)
+net_U2013<-read.csv(here("data_publish","saved_matrices","UA","net_U2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2013 <- as.matrix(net_U2013)
+net_U2014<-read.csv(here("data_publish","saved_matrices","UA","net_U2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2014 <- as.matrix(net_U2014)
+net_U2015<-read.csv(here("data_publish","saved_matrices","UA","net_U2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2015 <- as.matrix(net_U2015)
+net_U2016<-read.csv(here("data_publish","saved_matrices","UA","net_U2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2016 <- as.matrix(net_U2016)
+net_U2017<-read.csv(here("data_publish","saved_matrices","UA","net_U2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2017 <- as.matrix(net_U2017)
+net_U2018<-read.csv(here("data_publish","saved_matrices","UA","net_U2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2018 <- as.matrix(net_U2018)
+net_U2019<-read.csv(here("data_publish","saved_matrices","UA","net_U2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2019 <- as.matrix(net_U2019)
+net_U2020<-read.csv(here("data_publish","saved_matrices","UA","net_U2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2020 <- as.matrix(net_U2020)
+net_U2021<-read.csv(here("data_publish","saved_matrices","UA","net_U2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2021 <- as.matrix(net_U2021)
+net_U2022<-read.csv(here("data_publish","saved_matrices","UA","net_U2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2022 <- as.matrix(net_U2022)
+net_U2023<-read.csv(here("data_publish","saved_matrices","UA","net_U2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);net_U2023 <- as.matrix(net_U2023)
 ```
 
 Create the igraph object from the network matrices
@@ -104,7 +104,7 @@ Create the igraph object from the network matrices
 #| echo: true
 #GB2
 g_G2013<- graph_from_adjacency_matrix(net_G2013, mode = "undirected", weighted = TRUE, diag = FALSE)
-g_G2016<- graph_from_adjacency_matrix(net_G2016, mode = "undirected", weighted = TRUE, diag = FALSE)
+g_G2014<- graph_from_adjacency_matrix(net_G2014, mode = "undirected", weighted = TRUE, diag = FALSE)
 g_G2015<- graph_from_adjacency_matrix(net_G2015, mode = "undirected", weighted = TRUE, diag = FALSE)
 g_G2016<- graph_from_adjacency_matrix(net_G2016, mode = "undirected", weighted = TRUE, diag = FALSE)
 g_G2017<- graph_from_adjacency_matrix(net_G2017, mode = "undirected", weighted = TRUE, diag = FALSE)
@@ -133,30 +133,30 @@ g_U2023<- graph_from_adjacency_matrix(net_U2023, mode = "undirected", weighted =
 ```{r}
 #| echo: true
 #GB2
-GBI_G2013<-read.csv(here("data","saved_matrices","GB2","GBI_G2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2013 <- as.matrix(GBI_G2013)
-GBI_G2014<-read.csv(here("data","saved_matrices","GB2","GBI_G2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2014 <- as.matrix(GBI_G2014)
-GBI_G2015<-read.csv(here("data","saved_matrices","GB2","GBI_G2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2015 <- as.matrix(GBI_G2015)
-GBI_G2016<-read.csv(here("data","saved_matrices","GB2","GBI_G2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2016 <- as.matrix(GBI_G2016)
-GBI_G2017<-read.csv(here("data","saved_matrices","GB2","GBI_G2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2017 <- as.matrix(GBI_G2017)
-GBI_G2018<-read.csv(here("data","saved_matrices","GB2","GBI_G2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2018 <- as.matrix(GBI_G2018)
-GBI_G2019<-read.csv(here("data","saved_matrices","GB2","GBI_G2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2019 <- as.matrix(GBI_G2019)
-GBI_G2020<-read.csv(here("data","saved_matrices","GB2","GBI_G2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2020 <- as.matrix(GBI_G2020)
-GBI_G2021<-read.csv(here("data","saved_matrices","GB2","GBI_G2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2021 <- as.matrix(GBI_G2021)
-GBI_G2022<-read.csv(here("data","saved_matrices","GB2","GBI_G2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2022 <- as.matrix(GBI_G2022)
-GBI_G2023<-read.csv(here("data","saved_matrices","GB2","GBI_G2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2023 <- as.matrix(GBI_G2023)
+GBI_G2013<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2013 <- as.matrix(GBI_G2013)
+GBI_G2014<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2014 <- as.matrix(GBI_G2014)
+GBI_G2015<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2015 <- as.matrix(GBI_G2015)
+GBI_G2016<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2016 <- as.matrix(GBI_G2016)
+GBI_G2017<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2017 <- as.matrix(GBI_G2017)
+GBI_G2018<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2018 <- as.matrix(GBI_G2018)
+GBI_G2019<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2019 <- as.matrix(GBI_G2019)
+GBI_G2020<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2020 <- as.matrix(GBI_G2020)
+GBI_G2021<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2021 <- as.matrix(GBI_G2021)
+GBI_G2022<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2022 <- as.matrix(GBI_G2022)
+GBI_G2023<-read.csv(here("data_publish","saved_matrices","GB2","GBI_G2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_G2023 <- as.matrix(GBI_G2023)
 
 #UA
-GBI_U2013<-read.csv(here("data","saved_matrices","UA","GBI_U2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2013 <- as.matrix(GBI_U2013)
-GBI_U2014<-read.csv(here("data","saved_matrices","UA","GBI_U2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2014 <- as.matrix(GBI_U2014)
-GBI_U2015<-read.csv(here("data","saved_matrices","UA","GBI_U2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2015 <- as.matrix(GBI_U2015)
-GBI_U2016<-read.csv(here("data","saved_matrices","UA","GBI_U2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2016 <- as.matrix(GBI_U2016)
-GBI_U2017<-read.csv(here("data","saved_matrices","UA","GBI_U2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2017 <- as.matrix(GBI_U2017)
-GBI_U2018<-read.csv(here("data","saved_matrices","UA","GBI_U2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2018 <- as.matrix(GBI_U2018)
-GBI_U2019<-read.csv(here("data","saved_matrices","UA","GBI_U2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2019 <- as.matrix(GBI_U2019)
-GBI_U2020<-read.csv(here("data","saved_matrices","UA","GBI_U2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2020 <- as.matrix(GBI_U2020)
-GBI_U2021<-read.csv(here("data","saved_matrices","UA","GBI_U2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2021 <- as.matrix(GBI_U2021)
-GBI_U2022<-read.csv(here("data","saved_matrices","UA","GBI_U2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2022 <- as.matrix(GBI_U2022)
-GBI_U2023<-read.csv(here("data","saved_matrices","UA","GBI_U2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2023 <- as.matrix(GBI_U2023)
+GBI_U2013<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2013.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2013 <- as.matrix(GBI_U2013)
+GBI_U2014<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2014.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2014 <- as.matrix(GBI_U2014)
+GBI_U2015<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2015.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2015 <- as.matrix(GBI_U2015)
+GBI_U2016<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2016.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2016 <- as.matrix(GBI_U2016)
+GBI_U2017<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2017.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2017 <- as.matrix(GBI_U2017)
+GBI_U2018<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2018.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2018 <- as.matrix(GBI_U2018)
+GBI_U2019<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2019.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2019 <- as.matrix(GBI_U2019)
+GBI_U2020<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2020.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2020 <- as.matrix(GBI_U2020)
+GBI_U2021<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2021.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2021 <- as.matrix(GBI_U2021)
+GBI_U2022<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2022.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2022 <- as.matrix(GBI_U2022)
+GBI_U2023<-read.csv(here("data_publish","saved_matrices","UA","GBI_U2023.csv"),header=TRUE,sep=",",check.names = F,row.names = 1);GBI_U2023 <- as.matrix(GBI_U2023)
 ```
 
 
@@ -234,7 +234,8 @@ run_qap <- function(net_list,edges){
 #----- create list of all the networks for each years
 
 net_list_GB2 <- list(
-  "2013" = net_G2013,"2014" = net_G2014,"2015" = net_G2015,"2016" = net_G2016,"2017" = net_G2017,"2018" = net_G2018,"2019" = net_G2019,"2020" = net_G2020,"2021" = net_G2021,"2022" = net_G2022,"2023" = net_G2023
+  # 2016 removed: only one mother-daughter pair in the network
+  "2013" = net_G2013,"2014" = net_G2014,"2015" = net_G2015,"2017" = net_G2017,"2018" = net_G2018,"2019" = net_G2019,"2020" = net_G2020,"2021" = net_G2021,"2022" = net_G2022,"2023" = net_G2023
 )
 
 net_list_UA <- list(
@@ -331,6 +332,9 @@ make_perm_table <- function(obs_coef, perm_matrix, p_values) {
   obs_df %>%
     left_join(perm_summary, by = "term") %>%
     mutate(p_value = p_values[term]) %>%
+    # node-label permutations only test terms involving pair type,
+    # covariates (colony size, colony ID) are assessed with the model's Wald tests
+    filter(grepl("pair_type", term)) %>%
     arrange(desc(observed))
 }
 ```
@@ -347,7 +351,7 @@ model_diag_GB2 <- lmer(
   data = edges_GB2
 )
 infl_GB2 <- influence(model_diag_GB2, group = "year")
-plot(infl_GB2, which = "cook")
+car::infIndexPlot(infl_GB2, vars = "Cook")
 cooks.distance(infl_GB2)
 
 # UA -----
@@ -356,7 +360,7 @@ model_diag_UA <- lmer(
   data = edges_UA
 )
 infl_UA <- influence(model_diag_UA, group = "year")
-plot(infl_UA, which = "cook")
+car::infIndexPlot(infl_UA, vars = "Cook")
 cooks.distance(infl_UA)
 ```
 
@@ -371,25 +375,32 @@ cor.test(edges_UA$year,  edges_UA$colony_size)
 ```
 /!\ Colony size and year are highly correlated
 
-## 3.4 Weight transformation before GLMM 
-Beta distribution requires values strictly between 0 and 1. Transformation following: y' = (y*(n-1) + 0.5) / n  (Smithson & Verkuilen, 2006)
+## 3.4 Influential years
+No year was flagged by the Cook's distance --> all years are kept 
+```{r}
+edge_GB2_clean <- edges_GB2
+edge_UA_clean  <- edges_UA
+```
+
+## 3.5 Weight transformation before GLMM 
+Beta distribution requires values strictly between 0 and 1. Transformation following: y' = (y*(n-1) + 0.5) / n  (Smithson & Verkuilen, 2006). The original SRI is kept in "weight"
 ```{r transformation}
 #GB2
-n <- nrow(edges_GB2)
-edges_GB2$weight <- (edges_GB2$weight * (n - 1) + 0.5) / n
+n <- nrow(edge_GB2_clean)
+edge_GB2_clean$weight_beta <- (edge_GB2_clean$weight * (n - 1) + 0.5) / n
 
 #UA
-n <- nrow(edges_UA)
-edges_UA$weight <- ((edges_UA)$weight * (n - 1) + 0.5) / n
+n <- nrow(edge_UA_clean)
+edge_UA_clean$weight_beta <- (edge_UA_clean$weight * (n - 1) + 0.5) / n
 ```
 
 ```{r}
-edges_GB2 <- edges_GB2 %>%
+edge_GB2_clean <- edge_GB2_clean %>%
   mutate(pair_type_2 = factor(pair_type_2,
                               levels = c("other", "daughter-daughter",
                                          "mother-unrelated-juvenile", "mother-daughter")))
 
-edges_UA <- edges_UA %>%
+edge_UA_clean <- edge_UA_clean %>%
   mutate(pair_type_2 = factor(pair_type_2,
                               levels = c("other", "daughter-daughter",
                                          "mother-unrelated-juvenile", "mother-daughter")))
@@ -403,27 +414,27 @@ a pair type × colony size interaction to test whether the effect of pair type d
 ```{r models}
 # GB2 -------
 model_GB2 <- glmmTMB(
-  weight ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
-  data   = edges_GB2,
+  weight_beta ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
+  data   = edge_GB2_clean,
   family = beta_family()
 )
 
 model_GB2_int <- glmmTMB(
-  weight ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
-  data   = edges_GB2,
+  weight_beta ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
+  data   = edge_GB2_clean,
   family = beta_family()
 )
 
 # UA ------
 model_UA <- glmmTMB(
-  weight ~ pair_type_2 + colony_size_c + (1 | year),
-  data   = edges_UA,
+  weight_beta ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
+  data   = edge_UA_clean,
   family = beta_family()
 )
 
 model_UA_int <- glmmTMB(
-  weight ~ pair_type_2 * colony_size_c + (1 | year),
-  data   = edges_UA,
+  weight_beta ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
+  data   = edge_UA_clean,
   family = beta_family()
 )
 ```
@@ -433,14 +444,42 @@ summary(model_GB2);     summary(model_GB2_int)
 summary(model_UA);      summary(model_UA_int)
 ```
 
+## 3.6 H2 sensitivity: year instead of colony size
+Colony size and year are correlated (GB2: r = 0.91), so we fit the same interaction models with year instead of colony size and compare them with AIC.
+
+```{r h2-sensitivity}
+# centred year
+edge_GB2_clean$year_c <- edge_GB2_clean$year - mean(edge_GB2_clean$year)
+edge_UA_clean$year_c  <- edge_UA_clean$year  - mean(edge_UA_clean$year)
+
+model_GB2_int_year <- glmmTMB(
+  weight_beta ~ pair_type_2 * year_c + (1 | pairID) + (1 | year),
+  data   = edge_GB2_clean,
+  family = beta_family()
+)
+
+model_UA_int_year <- glmmTMB(
+  weight_beta ~ pair_type_2 * year_c + (1 | pairID) + (1 | year),
+  data   = edge_UA_clean,
+  family = beta_family()
+)
+
+# lower AIC = better fit (difference < 2: models fit equally well)
+AIC(model_GB2_int, model_GB2_int_year)
+AIC(model_UA_int,  model_UA_int_year)
+
+summary(model_GB2_int_year)
+summary(model_UA_int_year)
+```
+
 ## 3.5 merged model (H1)
 Update: for H1, merged model, two colonies together with colony ID as fixed factor
 ```{r}
-edges_GB2$colony_ID <- "GB2"
-edges_UA$colony_ID <- "UA"
+edge_GB2_clean$colony_ID <- "GB2"
+edge_UA_clean$colony_ID <- "UA"
 
 #merged the two datasets
-edges_full <- rbind(edges_GB2,edges_UA)
+edges_full <- rbind(edge_GB2_clean, edge_UA_clean)
 
 #recenter colony_size for both 
 edges_full <- edges_full %>%
@@ -460,7 +499,7 @@ cor.test(edges_full$year,  edges_full$colony_size) #0.7547435
 
 ```{r}
 model_full <- glmmTMB(
-  weight ~ pair_type_2 + colony_size_c + (1 | year) + (1 | pairID),
+  weight_beta ~ pair_type_2 + colony_ID + colony_size_c + (1 | pairID) + (1 | year),
   data   = edges_full,
   family = beta_family()
 )
@@ -501,7 +540,7 @@ We did n = 1000 permutations for each model
 #| warning: false
 #| message: false
 set.seed(23)
-n_perm <- 500
+n_perm <- 100 # 1000 for the final results
 
 #coefficients 
 coef_names_GB2 <- c(
@@ -530,16 +569,16 @@ perm_GB2_int <- matrix(NA, n_perm, length(coef_names_GB2_int),
                        dimnames = list(NULL, coef_names_GB2_int))
 
 for (i in seq_len(n_perm)) {
-  d <- edges_GB2 %>%
+  d <- edge_GB2_clean %>%
     group_by(year) %>%
     mutate(pair_type_2 = sample(pair_type_2)) %>%
     ungroup()
 
-  m <- glmmTMB(weight ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
+  m <- glmmTMB(weight_beta ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
                family = beta_family(), data = d)
   perm_GB2[i, ] <- fixef(m)$cond[coef_names_GB2]
 
-  m_int <- glmmTMB(weight ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
+  m_int <- glmmTMB(weight_beta ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
                    family = beta_family(), data = d)
   perm_GB2_int[i, ] <- fixef(m_int)$cond[coef_names_GB2_int]
 }
@@ -617,7 +656,7 @@ contrasts_UA <- get_emmeans_contrasts(model_UA)
 
 ## 4.2  UA
 
-```{r perm-ua, cache=TRUE}
+```{r perm-ua}
 #| warning: false
 #| message: false
 set.seed(23)
@@ -649,16 +688,16 @@ perm_UA_int <- matrix(NA, n_perm, length(coef_names_UA_int),
                       dimnames = list(NULL, coef_names_UA_int))
 
 for (i in seq_len(n_perm)) {
-  d <- edges_UA %>%
+  d <- edge_UA_clean %>%
     group_by(year) %>%
     mutate(pair_type_2 = sample(pair_type_2)) %>%
     ungroup()
 
-  m <- glmmTMB(weight ~ pair_type_2 + colony_size_c + (1 | year),
+  m <- glmmTMB(weight_beta ~ pair_type_2 + colony_size_c + (1 | pairID) + (1 | year),
                family = beta_family(), data = d)
   perm_UA[i, ] <- fixef(m)$cond[coef_names_UA]
 
-  m_int <- glmmTMB(weight ~ pair_type_2 * colony_size_c + (1 | year),
+  m_int <- glmmTMB(weight_beta ~ pair_type_2 * colony_size_c + (1 | pairID) + (1 | year),
                    family = beta_family(), data = d)
   perm_UA_int[i, ] <- fixef(m_int)$cond[coef_names_UA_int]
 }
@@ -733,11 +772,10 @@ contrasts_UA_plot <- data.frame(
 ```
 
 ## 4.4 merged model (H1)
-```{r perm GB2}
+```{r perm-merged}
 #| warning: false
 #| message: false
 set.seed(23)
-n_perm <- 100
 
 #coefficients 
 coef_names_merged <- c(
@@ -755,28 +793,27 @@ perm_merged    <- matrix(NA, n_perm, length(coef_names_merged),
 
 for (i in seq_len(n_perm)) {
   d <- edges_full %>%
-    group_by(year) %>%
+    group_by(colony_ID, year) %>%
     mutate(pair_type_2 = sample(pair_type_2)) %>%
     ungroup()
 
-  m <- glmmTMB(weight ~ pair_type_2 + colony_ID + colony_size_c + (1 | pairID) + (1 | year),
+  m <- glmmTMB(weight_beta ~ pair_type_2 + colony_ID + colony_size_c + (1 | pairID) + (1 | year),
                family = beta_family(), data = d)
   perm_merged[i, ] <- fixef(m)$cond[coef_names_merged]
 }
 
-save(perm_GB2,file = here("results", "H1_permutations_merged.RData"))
+save(perm_merged, file = here("results", "H1_permutations_merged.RData"))
 ```
 
-```{r perm-gb2-pvalues}
+```{r perm-merged-pvalues}
 p_merged    <- compute_perm_pvalues(obs_coef_merged,     perm_merged)
 
 table_merged     <- make_perm_table(obs_coef_merged,     perm_merged,     p_merged)
 
 cat("\n── Merged model ──\n"); print(table_merged)
 
-write.csv(table_GB2,
-          here("results", "tables", "H1_perm_GB2_main.csv"),     row.names = FALSE)
-
+write.csv(table_merged,
+          here("results", "tables", "H1_perm_merged_main.csv"),  row.names = FALSE)
 ```
 #### pair comparison - inference
 ```{r}
@@ -1150,7 +1187,7 @@ combined <- p_GB2 + p_UA +
   theme(legend.position = "bottom")
 
 combined
-ggsave("h2_predictions.png", combined, width = 9, height = 4.5, dpi = 300)
+ggsave(here("results","figures","h2_predictions.png"), combined, width = 9, height = 4.5, dpi = 300)
 ```
 
 ---

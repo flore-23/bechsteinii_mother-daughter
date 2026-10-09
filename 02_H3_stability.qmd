@@ -18,7 +18,7 @@ The predictor in this analysis is **relationship age**, which is defined:
 - MD, M-unrelated juv and juv-juv pairs: daughter age (years since birth year recorded in mother-daughter file)
 - all other pairs: years since the pair was first observed together in the data set
   
-Pairs already present in 2013 are marked with "unknown_age" as a control, since their true relationship age is unknown.
+Pairs in which both individuals were already adults in 2013 are removed, since their true relationship age is unknown.
 
 ---
 
@@ -33,6 +33,10 @@ library(DHARMa)
 library(performance)
 library(ggeffects)
 library(broom.mixed)
+library(emmeans)
+
+dir.create(here("results", "tables"),  recursive = TRUE, showWarnings = FALSE)
+dir.create(here("results", "figures"), recursive = TRUE, showWarnings = FALSE)
 ```
 
 ---
@@ -43,27 +47,27 @@ library(broom.mixed)
 ```{r}
 #| echo: true
 #GB2 —————
-edge_G2013<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2013.csv"))
+edge_G2013<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2013.csv"))
 edge_G2013 <- edge_G2013 %>% mutate(year = 2013)
-edge_G2014<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2014.csv"));
+edge_G2014<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2014.csv"));
 edge_G2014 <- edge_G2014 %>% mutate(year = 2014)
-edge_G2015<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2015.csv"));
+edge_G2015<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2015.csv"));
 edge_G2015 <- edge_G2015 %>% mutate(year = 2015)
-edge_G2016<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2016.csv"));edge_G2016 <- edge_G2016 %>% select(from,to,weight, pair_type);
+edge_G2016<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2016.csv"));edge_G2016 <- edge_G2016 %>% select(from,to,weight, pair_type);
 edge_G2016 <- edge_G2016 %>% mutate(year = 2016)
-edge_G2017<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2017.csv"));
+edge_G2017<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2017.csv"));
 edge_G2017 <- edge_G2017 %>% mutate(year = 2017)
-edge_G2018<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2018.csv"));
+edge_G2018<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2018.csv"));
 edge_G2018 <- edge_G2018 %>% mutate(year = 2018)
-edge_G2019<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2019.csv"));
+edge_G2019<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2019.csv"));
 edge_G2019 <- edge_G2019 %>% mutate(year = 2019)
-edge_G2020<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2020.csv"));
+edge_G2020<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2020.csv"));
 edge_G2020 <- edge_G2020 %>% mutate(year = 2020)
-edge_G2021<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2021.csv"));
+edge_G2021<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2021.csv"));
 edge_G2021 <- edge_G2021 %>% mutate(year = 2021)
-edge_G2022<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2022.csv")); 
+edge_G2022<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2022.csv")); 
 edge_G2022 <- edge_G2022 %>% mutate(year = 2022)
-edge_G2023<-read.csv(here("data","saved_matrices","GB2","full","full_edge_G2023.csv"));
+edge_G2023<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2023.csv"));
 edge_G2023 <- edge_G2023 %>% mutate(year = 2023)
 
 #create global edge list
@@ -74,27 +78,27 @@ edges_GB2_full<-rbind(edge_G2013,edge_G2014,edge_G2015,edge_G2016,edge_G2017,edg
 edges_GB2_full$weight<-as.numeric(edges_GB2_full$weight)
 
 #UA ————
-edge_U2013<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2013.csv"))
+edge_U2013<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2013.csv"))
 edge_U2013 <- edge_U2013 %>% mutate(year = 2013)
-edge_U2014<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2014.csv"));
+edge_U2014<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2014.csv"));
 edge_U2014 <- edge_U2014 %>% mutate(year = 2014)
-edge_U2015<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2015.csv"));
+edge_U2015<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2015.csv"));
 edge_U2015 <- edge_U2015 %>% mutate(year = 2015)
-edge_U2016<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2016.csv"));edge_U2016 <- edge_U2016 %>% select(from,to,weight, pair_type);
+edge_U2016<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2016.csv"));edge_U2016 <- edge_U2016 %>% select(from,to,weight, pair_type);
 edge_U2016 <- edge_U2016 %>% mutate(year = 2016)
-edge_U2017<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2017.csv"));
+edge_U2017<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2017.csv"));
 edge_U2017 <- edge_U2017 %>% mutate(year = 2017)
-edge_U2018<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2018.csv"));
+edge_U2018<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2018.csv"));
 edge_U2018 <- edge_U2018 %>% mutate(year = 2018)
-edge_U2019<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2019.csv"));
+edge_U2019<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2019.csv"));
 edge_U2019 <- edge_U2019 %>% mutate(year = 2019)
-edge_U2020<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2020.csv"));
+edge_U2020<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2020.csv"));
 edge_U2020 <- edge_U2020 %>% mutate(year = 2020)
-edge_U2021<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2021.csv"));
+edge_U2021<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2021.csv"));
 edge_U2021 <- edge_U2021 %>% mutate(year = 2021)
-edge_U2022<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2022.csv")); 
+edge_U2022<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2022.csv")); 
 edge_U2022 <- edge_U2022 %>% mutate(year = 2022)
-edge_U2023<-read.csv(here("data","saved_matrices","UA","full","full_edges_U2023.csv"));
+edge_U2023<-read.csv(here("data_publish","saved_matrices","UA","full","full_edge_U2023.csv"));
 edge_U2023 <- edge_U2023 %>% mutate(year = 2023)
 
 #create global edge list
@@ -106,36 +110,36 @@ edges_UA_full$weight<-as.numeric(edges_UA_full$weight)
 ## 1.2  mother-daughter files
 
 ```{r load}
-mother_daughter_GB2 <- read.csv(here("data", "mother_daughter_GB2.csv")) %>%
+mother_daughter_GB2 <- read.csv(here("data_publish", "mother_daughter_GB2.csv")) %>%
   mutate(pairID = as.character(pairID))
 
-mother_daughter_UA <- read.csv(here("data", "mother_daughter_UA.csv")) %>%
+mother_daughter_UA <- read.csv(here("data_publish", "mother_daughter_UA.csv")) %>%
   mutate(pairID = as.character(pairID))
 ```
 
 ## 1.3  mother-unrelated-daughter files
 
-```{r load}
-mom_juv_GB2 <- read.csv(here("data", "saved_matrices", "GB2", "mom_juv_GB2.csv")) 
+```{r load-mom-juv}
+mom_juv_GB2 <- read.csv(here("data_publish", "saved_matrices", "GB2", "mom_juv_GB2.csv")) 
 
-mom_juv_UA <- read.csv(here("data", "saved_matrices", "UA", "mom_juv_UA.csv")) 
+mom_juv_UA <- read.csv(here("data_publish", "saved_matrices", "UA", "mom_juv_UA.csv")) 
 ```
 
 # 1.4 juveniles pairs 
 ```{r}
-juv_pairs_GB2 <- read.csv(here("data","juv_pairs_GB2.csv"))
-juv_pairs_UA <- read.csv(here("data","juv_pairs_UA.csv"))
+juv_pairs_GB2 <- read.csv(here("data_publish","juv_pairs_GB2.csv"))
+juv_pairs_UA <- read.csv(here("data_publish","juv_pairs_UA.csv"))
 ```
 
 ## 1.5  colony size
 
 ```{r load-colony-size}
 colony_size_GB2 <- read.csv(
-  here("data", "saved_matrices", "GB2", "colony_size_df.csv")
+  here("data_publish", "saved_matrices", "GB2", "colony_size_df.csv")
 ) %>% mutate(year = as.numeric(year))
 
 colony_size_UA <- read.csv(
-  here("data", "saved_matrices", "UA", "colony_size_UA.csv")
+  here("data_publish", "saved_matrices", "UA", "colony_size_UA.csv")
 ) %>% mutate(year = as.numeric(year))
 ```
 
@@ -148,7 +152,9 @@ This add pairID, relation_age and pair type labels to the edge lists
 - relation_age for MD pairs = daughter age (years since birth)
 - relation_age for other pairs = years since first observed together
 
-add "unknown_age" column for the control 
+Pairs in which both individuals were already adults in 2013 (present in 2013 and not born that year) are removed: their relationship started before the study, so their relationship age is unknown and they may include mother-daughter pairs from before 2013.
+
+Each pair has a single pair type for all years (priority: mother-daughter > mother-unrelated juvenile > juvenile-juvenile > other), so that each pair appears only once per year.
 
 ```{r}
 prepare_edges <- function(edges_full, md_file, mom_juv, juv_pairs, colony_size_df) {
@@ -159,26 +165,30 @@ prepare_edges <- function(edges_full, md_file, mom_juv, juv_pairs, colony_size_d
                             paste(from, to, sep = "-"),
                             paste(to, from, sep = "-")))
 
-  # label MD pairs
+  # remove pairs of individuals that were both adults in 2013 (relationship age unknown)
+  ind_2013    <- unique(c(df$from[df$year == 2013], df$to[df$year == 2013]))
+  adults_2013 <- setdiff(ind_2013, md_file$rfid_off[md_file$year == 2013])
   df <- df %>%
-    mutate(pair_origin = if_else(
-      pairID %in% md_file$pairID, "mother-daughter", "other"
+    filter(!(from %in% adults_2013 & to %in% adults_2013))
+
+  # one pair type per pair
+  muj_pairs <- unique(mom_juv$pairID[mom_juv$pair_type_2 == "mother-unrelated-daughter"])
+  df <- df %>%
+    mutate(pair_origin = case_when(
+      pairID %in% md_file$pairID   ~ "mother-daughter",
+      pairID %in% muj_pairs        ~ "mother-unrelated-juvenile",
+      pairID %in% juv_pairs$pairID ~ "juvenile-juvenile",
+      TRUE                         ~ "other"
     ))
 
   # daughter age for MD pairs
   df <- df %>%
-    group_by(pairID) %>%
     mutate(
       first_year_md = md_file$year[match(pairID, md_file$pairID)],
       daughter_age  = if_else(
         is.na(first_year_md), NA_real_, as.numeric(year - first_year_md + 1)
       )
-    ) %>%
-    ungroup()
-
-  # remove first summer of MD pairs
- #df <- df %>%
-  # filter(!(pair_origin == "mother-daughter" & daughter_age == 1))
+    )
 
   # relation age variable
   df <- df %>%
@@ -191,50 +201,15 @@ prepare_edges <- function(edges_full, md_file, mom_juv, juv_pairs, colony_size_d
       as.numeric(year - first_year_overall + 1)
     ))
 
-  # unknown_age flag
+  # remove first summer of early-life pairs (juveniles marked in August)
   df <- df %>%
-    group_by(pairID) %>%
-    mutate(unknown_age = factor(if_else(
-      pair_origin == "other" & first_year_overall == 2013, TRUE, FALSE
-    ))) %>%
-    ungroup()
+    filter(!(pair_origin %in% c("mother-daughter",
+                               "juvenile-juvenile",
+                               "mother-unrelated-juvenile") &
+           relation_age == 1))
 
-  # add MUJ labels
-  df <- df %>%
-    left_join(
-      mom_juv %>% distinct(pairID, pair_type_2, juv_year = year),
-      by = "pairID"
-    ) %>%
-    mutate(pair_origin = case_when(
-      pair_type_2 == "mother-daughter"           ~ "mother-daughter",
-      pair_type_2 == "mother-unrelated-daughter" ~ "mother-unrelated-juvenile",
-      TRUE                                       ~ pair_origin
-    ))
-
-  # remove first summer of MUJ pairs
-  #df <- df %>%
-  #  filter(!(pair_origin == "mother-unrelated-juvenile" & year == juv_year)) %>%
-   # select(-pair_type_2, -juv_year)
-
-  # add JJ labels, same logic as MUJ
-  # juv_pairs has pairID and year (the juvenile year = first summer to exclude)
-  juv_lookup <- juv_pairs %>%
-  distinct(pairID, juv_year = year)
-  
-  df <- df %>%
-    left_join(
-      juv_lookup %>% distinct(pairID, juv_year),
-      by = "pairID"
-    ) %>%
-    mutate(pair_origin = case_when(
-      pair_origin == "other" & pairID %in% juv_pairs$pairID ~ "juvenile-juvenile",
-      TRUE ~ pair_origin
-    ))
-
-  # remove first summer of JJ pairs
-  #df <- df %>%
-  #  filter(!(pair_origin == "juvenile-juvenile" & year == juv_year)) %>%
-   # select(-juv_year)
+  # each pair only once per year
+  stopifnot(!anyDuplicated(df[, c("pairID", "year")]))
 
   # colony size
   df <- df %>%
@@ -249,7 +224,7 @@ prepare_edges <- function(edges_full, md_file, mom_juv, juv_pairs, colony_size_d
     mutate(weight_beta = (weight * (n - 1) + 0.5) / n)
 
   # factor levels and centre relation_age
-  df <- df %>%
+  df %>%
     mutate(
       pair_origin = factor(pair_origin,
                            levels = c("other",
@@ -258,12 +233,6 @@ prepare_edges <- function(edges_full, md_file, mom_juv, juv_pairs, colony_size_d
                                       "mother-daughter")),
       relation_age_c = relation_age - mean(relation_age, na.rm = TRUE)
     )
-  
-  df <- df %>%
-    filter(!(pair_origin %in% c("mother-daughter", 
-                               "juvenile-juvenile",
-                               "mother-unrelated-juvenile") & 
-           relation_age == 1))
 }
 
 ```
@@ -277,24 +246,21 @@ edges_UA_final  <- prepare_edges(edges_UA_full,  mother_daughter_UA,
                                  mom_juv_UA,  juv_pairs_UA, colony_size_UA)
 ```
 
-# 2.3 check 
-How many "unkown_age" 
+# 2.3 check
+Number of pairs per pair type, and number of pairs removed (both individuals adults in 2013)
 ```{r}
-# GB2
-edges_GB2_final %>%
-  summarise(
-    total_dyads   = n_distinct(pairID),
-    unknown_age_dyads = n_distinct(pairID[unknown_age == TRUE]),
-    prop_unknown  = round(unknown_age_dyads / total_dyads, 2)
+count_pairs <- function(edges_full, edges_final) {
+  all_pairs <- edges_full %>%
+    mutate(pairID = if_else(from < to, paste(from, to, sep = "-"), paste(to, from, sep = "-")))
+  list(
+    pairs_total   = n_distinct(all_pairs$pairID),
+    pairs_kept    = n_distinct(edges_final$pairID),
+    pairs_by_type = edges_final %>% distinct(pairID, pair_origin) %>% count(pair_origin)
   )
+}
 
-# UA
-edges_UA_final %>%
-  summarise(
-    total_dyads   = n_distinct(pairID),
-    unknown_age_dyads = n_distinct(pairID[unknown_age == TRUE]),
-    prop_unknown  = round(unknown_age_dyads / total_dyads, 2)
-  )
+count_pairs(edges_GB2_full, edges_GB2_final)
+count_pairs(edges_UA_full,  edges_UA_final)
 ```
 
 Check relationship age range
@@ -306,17 +272,31 @@ edges_UA_final %>%  summarise(max_ra = max(relation_age, na.rm = TRUE),
 ```
 
 ### 3.0 model
+Main-effects models
+```{r}
+model_age_GB2 <- glmmTMB(
+  weight_beta ~ relation_age_c + pair_origin + (1 | pairID) + (1 | year),
+  data   = edges_GB2_final,
+  family = beta_family()
+)
+
+model_age_UA <- glmmTMB(
+  weight_beta ~ relation_age_c + pair_origin + (1 | pairID) + (1 | year),
+  data   = edges_UA_final,
+  family = beta_family()
+)
+```
+
+Interaction models
 ```{r}
 model_age_int_GB2 <- glmmTMB(
-   weight_beta ~ relation_age_c * pair_origin +
-  + unknown_age + (1 | pairID) + (1 | year),
+   weight_beta ~ relation_age_c * pair_origin + (1 | pairID) + (1 | year),
   data   = edges_GB2_final,
   family = beta_family()
 )
 
 model_age_int_UA <- glmmTMB(
-  weight_beta ~ relation_age_c * pair_origin +
-  + unknown_age + (1 | pairID) + (1 | year),
+  weight_beta ~ relation_age_c * pair_origin + (1 | pairID) + (1 | year),
   data   = edges_UA_final,
   family = beta_family()
 )
@@ -324,6 +304,8 @@ model_age_int_UA <- glmmTMB(
 
 Summaries
 ```{r}
+summary(model_age_GB2)
+summary(model_age_UA)
 summary(model_age_int_GB2)
 summary(model_age_int_UA)
 ```
@@ -354,15 +336,13 @@ edges_merged <- edges_merged %>%
 MODEL
 ```{r}
 model_age_merged <- glmmTMB(
-  weight_beta ~ relation_age_c + pair_origin + colony +
-    unknown_age + (1 | pairID) + (1 | year),
+  weight_beta ~ relation_age_c + pair_origin + colony + (1 | pairID) + (1 | year),
   data   = edges_merged,
   family = beta_family()
 )
 
 model_age_int_merged <- glmmTMB(
-  weight_beta ~ relation_age_c * pair_origin  + colony +
-    unknown_age +  (1| pairID) + (1 | year),
+  weight_beta ~ relation_age_c * pair_origin  + colony +  (1| pairID) + (1 | year),
   data   = edges_merged,
   family = beta_family()
 )
@@ -395,13 +375,13 @@ cor.test(edges_merged$relation_age, edges_merged$year)
 
 # - check 4: VIF to check multicollinearity in the model
 # lm - just to check collinearity among predictors
-lm_check_GB2 <- lm(weight_beta ~ relation_age_c * pair_origin  + unknown_age,
+lm_check_GB2 <- lm(weight_beta ~ relation_age_c * pair_origin,
                     data = edges_GB2_final)
 
-lm_check_UA <- lm(weight_beta ~ relation_age_c * pair_origin + unknown_age,
+lm_check_UA <- lm(weight_beta ~ relation_age_c * pair_origin,
                    data = edges_UA_final)
 
-lm_check_merged <- lm(weight_beta ~ relation_age_c * pair_origin + unknown_age,
+lm_check_merged <- lm(weight_beta ~ relation_age_c * pair_origin,
                    data = edges_merged)
 
 car::vif(lm_check_GB2)
@@ -444,15 +424,55 @@ print(within_dyad_UA)
 ---
 
 # 5  Permutations 
-Node-label permutations within each year (1000 permutations) 
+Node-label permutations: pair types are shuffled among dyads within each year (and colony), and the observed models are refitted on each permuted dataset.
 
 ## 5.0 Functions
+```{r}
+n_perm <- 100 # 1000 for the final results
+
+coef_names <- c(
+  "relation_age_c",
+  "pair_originmother-unrelated-juvenile",
+  "pair_originmother-daughter",
+  "pair_originjuvenile-juvenile"
+)
+coef_names_int <- c(
+  coef_names,
+  "relation_age_c:pair_originmother-unrelated-juvenile",
+  "relation_age_c:pair_originmother-daughter", 
+  "relation_age_c:pair_originjuvenile-juvenile"
+)
+```
+
+#### Permutation function
+Refits the main-effects and interaction models on `n_perm` permuted datasets
+```{r}
+run_permutations <- function(data, formula_main, formula_int, n_perm, groups = "year") {
+  perm_main <- matrix(NA, n_perm, length(coef_names),     dimnames = list(NULL, coef_names))
+  perm_int  <- matrix(NA, n_perm, length(coef_names_int), dimnames = list(NULL, coef_names_int))
+
+  for (i in seq_len(n_perm)) {
+    d <- data %>%
+      group_by(across(all_of(groups))) %>%
+      mutate(pair_origin = sample(pair_origin)) %>%
+      ungroup()
+
+    m <- glmmTMB(formula_main, family = beta_family(), data = d)
+    perm_main[i, ] <- fixef(m)$cond[coef_names]
+
+    m_int <- glmmTMB(formula_int, family = beta_family(), data = d)
+    perm_int[i, ] <- fixef(m_int)$cond[coef_names_int]
+  }
+  list(main = perm_main, int = perm_int)
+}
+```
+
 #### p-value function
 ```{r}
 #two-tailed permutation p-values
 compute_perm_pvalues <- function(obs_coef, perm_matrix) {
   sapply(names(obs_coef), function(nm)
-    mean(abs(perm_matrix[, nm]) >= abs(obs_coef[nm]))
+    mean(abs(perm_matrix[, nm]) >= abs(obs_coef[nm]), na.rm = TRUE)
   )
 }
 ```
@@ -466,61 +486,35 @@ make_perm_table <- function(obs_coef, perm_matrix, p_values) {
       as.data.frame(perm_matrix) %>%
         pivot_longer(everything(), names_to = "term", values_to = "value") %>%
         group_by(term) %>%
-        summarise(perm_mean = mean(value), perm_sd = sd(value), .groups = "drop"),
+        summarise(perm_mean = mean(value, na.rm = TRUE), perm_sd = sd(value, na.rm = TRUE), .groups = "drop"),
       by = "term"
     ) %>%
     mutate(p_value = p_values[term]) %>%
+    # node-label permutations only test terms involving pair type,
+    # the main effect of relationship age is assessed with the model's Wald test
+    filter(grepl("pair_origin", term)) %>%
     arrange(desc(observed))
 }
 ```
 
 
 ## 5.1  GB2
-```{r}
+```{r perm-gb2}
 set.seed(23)
-n_perm <- 10
+perm_GB2_all <- run_permutations(edges_GB2_final,
+                                 formula(model_age_GB2), formula(model_age_int_GB2),
+                                 n_perm)
+perm_GB2     <- perm_GB2_all$main
+perm_int_GB2 <- perm_GB2_all$int
 
-coef_names_int <- c(
-  "relation_age_c",
-  "pair_originmother-unrelated-juvenile",
-  "pair_originmother-daughter",
-  "pair_originjuvenile-juvenile",
-  "relation_age_c:pair_originmother-unrelated-juvenile",
-  "relation_age_c:pair_originmother-daughter", 
-  "relation_age_c:pair_originjuvenile-juvenile"
-)
-
-obs_int_GB2 <- fixef(model_age_int_GB2)$cond[coef_names_int]
-
-perm_int_GB2 <- matrix(NA, n_perm, length(coef_names_int),
-                       dimnames = list(NULL, coef_names_int))
-
-for (i in seq_len(n_perm)) {
-  d <- edges_GB2_final %>%
-    group_by(year) %>%
-    mutate(pair_origin = sample(pair_origin)) %>%
-    ungroup()
-  
-  #m <- glmmTMB(
-  # weight_beta ~ relation_age_c * pair_origin +
- # + unknown_age + (1 | from) + (1 | to) + (1 | year),
-  #  family = beta_family(), data = d
- # )
- # perm_GB2[i, ] <- fixef(m)$cond[coef_names] 
-  
-  m_int <- glmmTMB(
-    weight_beta ~ relation_age_c * pair_origin +
-  + unknown_age + (1 | from) + (1 | to) + (1 | year),
-    family = beta_family(), data = d
-  )
-  perm_int_GB2[i, ] <- fixef(m_int)$cond[coef_names_int]
-}
-
-save(perm_int_GB2,
+save(perm_GB2, perm_int_GB2,
      file = here("results", "H3_permutations_GB2.RData"))
 ```
 
-```{r perm gb2 - pval}
+```{r perm-gb2-pvalues}
+obs_GB2     <- fixef(model_age_GB2)$cond[coef_names]
+obs_int_GB2 <- fixef(model_age_int_GB2)$cond[coef_names_int]
+
 p_GB2     <- compute_perm_pvalues(obs_GB2,     perm_GB2)
 p_int_GB2 <- compute_perm_pvalues(obs_int_GB2, perm_int_GB2)
 
@@ -538,39 +532,22 @@ write.csv(table_int_GB2,
 
 ## 5.2  UA
 
-```{r perm ua, cache=TRUE}
+```{r perm-ua}
 set.seed(23)
-obs_int_UA <- fixef(model_age_int_UA)$cond[coef_names_int]
+perm_UA_all <- run_permutations(edges_UA_final,
+                                formula(model_age_UA), formula(model_age_int_UA),
+                                n_perm)
+perm_UA     <- perm_UA_all$main
+perm_int_UA <- perm_UA_all$int
 
-perm_int_UA <- matrix(NA, n_perm, length(coef_names_int),
-                      dimnames = list(NULL, coef_names_int))
-
-for (i in seq_len(n_perm)) {
-  d <- edges_UA_final %>%
-    group_by(year) %>%
-    mutate(pair_origin = sample(pair_origin)) %>%
-    ungroup()
-  
-  #m <- glmmTMB(
-   # weight_beta ~ relation_age_c + pair_origin + colony_size_c + unknown_age +
-    #  (1 | pairID) + (1 | year),
-    #family = beta_family(), data = d
- # )
- # perm_UA[i, ] <- fixef(m)$cond[coef_names]
-  
-  m_int <- glmmTMB(
-    weight_beta ~ relation_age_c * pair_origin + colony_size_c + unknown_age +
-      (1 | pairID) + (1 | year),
-    family = beta_family(), data = d
-  )
-  perm_int_UA[i, ] <- fixef(m_int)$cond[coef_names_int] 
-}
-
-save( perm_int_UA,
+save(perm_UA, perm_int_UA,
      file = here("results", "H3_permutations_UA.RData"))
 ```
 
 ```{r perm-ua-pvalues}
+obs_UA     <- fixef(model_age_UA)$cond[coef_names]
+obs_int_UA <- fixef(model_age_int_UA)$cond[coef_names_int]
+
 p_UA     <- compute_perm_pvalues(obs_UA,     perm_UA)
 p_int_UA <- compute_perm_pvalues(obs_int_UA, perm_int_UA)
 
@@ -587,64 +564,27 @@ write.csv(table_int_UA,
 ```
 
 ## 5.3 - merged model
-```{r}
+Pair types are shuffled within each colony and year
+```{r perm-merged}
 set.seed(23)
-n_perm <- 100
-
-coef_names <- c(
-  "relation_age_c",
-  "pair_originmother-unrelated-juvenile",
-  "pair_originmother-daughter",
-  "pair_originjuvenile-juvenile"
-)
-coef_names_int <- c(
-  "relation_age_c",
-  "pair_originmother-unrelated-juvenile",
-  "pair_originmother-daughter",
-  "pair_originjuvenile-juvenile",
-  "relation_age_c:pair_originmother-unrelated-juvenile",
-  "relation_age_c:pair_originmother-daughter", 
-  "relation_age_c:pair_originjuvenile-juvenile"
-)
-
-obs_merged    <- fixef(model_age_merged)$cond[coef_names]
-obs_int_merged <- fixef(model_age_int_merged)$cond[coef_names_int]
-
-perm_merged     <- matrix(NA, n_perm, length(coef_names),
-                       dimnames = list(NULL, coef_names))
-perm_int_merged <- matrix(NA, n_perm, length(coef_names_int),
-                       dimnames = list(NULL, coef_names_int))
-
-for (i in seq_len(n_perm)) {
-  d <- edges_merged %>%
-    group_by(year) %>%
-    mutate(pair_origin = sample(pair_origin)) %>%
-    ungroup()
-  
-  m <- glmmTMB(
-  weight_beta ~ relation_age_c + pair_origin  + colony +
-    unknown_age +  (1 | pairID) + (1 | year),
-    family = beta_family(), data = d
-  )
-  perm_merged[i, ] <- fixef(m)$cond[coef_names] 
-  
-  m_int <- glmmTMB(
-  weight_beta ~ relation_age_c * pair_origin  + colony +
-    unknown_age +  (1 | pairID) + (1 | year),
-    family = beta_family(), data = d
-  )
-  perm_int_merged[i, ] <- fixef(m_int)$cond[coef_names_int]
-}
+perm_merged_all <- run_permutations(edges_merged,
+                                    formula(model_age_merged), formula(model_age_int_merged),
+                                    n_perm, groups = c("colony", "year"))
+perm_merged     <- perm_merged_all$main
+perm_int_merged <- perm_merged_all$int
 
 save(perm_merged, perm_int_merged,
      file = here("results", "H3_permutations_merged_model.RData"))
 ```
 
-```{r perm - pval}
-p_merged <- compute_perm_pvalues(obs_merged,     perm_merged)
+```{r perm-merged-pvalues}
+obs_merged     <- fixef(model_age_merged)$cond[coef_names]
+obs_int_merged <- fixef(model_age_int_merged)$cond[coef_names_int]
+
+p_merged     <- compute_perm_pvalues(obs_merged,     perm_merged)
 p_int_merged <- compute_perm_pvalues(obs_int_merged, perm_int_merged)
 
-table_merged <- make_perm_table(obs_merged,     perm_merged,     p_merged)
+table_merged     <- make_perm_table(obs_merged,     perm_merged,     p_merged)
 table_int_merged <- make_perm_table(obs_int_merged, perm_int_merged, p_int_merged)
 
 cat("main effects ---\n");   print(table_merged)
@@ -662,6 +602,10 @@ write.csv(table_int_merged,
 
 ## GB2 + UA plot
 ```{r}
+pair_colors <- c("mother-daughter" = "#cf67b3",
+                  "mother-unrelated-juvenile" = "#3d4f91",
+                  "juvenile-juvenile" = "#7c9fd9",
+                  "other" = "#999999")
 library(emmeans)
 library(dplyr)
 library(ggplot2)
@@ -676,8 +620,7 @@ emm_GB2 <- emmeans(model_age_int_GB2,
                     ~ relation_age_c * pair_origin,
                     at = list(
                       relation_age_c = seq(1, 10, by = 1) - mean_age_GB2,
-                      colony_size_c = 0,
-                      unknown_age = "FALSE"
+                      colony_size_c = 0
                     ),
                     type = "response") %>%
   as.data.frame() %>%
@@ -688,8 +631,7 @@ emm_UA <- emmeans(model_age_int_UA,
                    ~ relation_age_c * pair_origin,
                    at = list(
                      relation_age_c = seq(1, 9, by = 1) - mean_age_UA,
-                     colony_size_c = 0,
-                     unknown_age = "FALSE"
+                     colony_size_c = 0
                    ),
                    type = "response") %>%
   as.data.frame() %>%
@@ -761,10 +703,6 @@ ggsave(here("results","figures","H3_model_prediction.png"), p, width = 9, height
 
 #### merged model - plot
 ```{r}
-pair_colors <- c("mother-daughter" = "#cf67b3",
-                  "mother-unrelated-juvenile" = "#3d4f91",
-                  "juvenile-juvenile" = "#7c9fd9",
-                  "other" = "#999999")
 
 # mean relation_age for uncentreing
 mean_age <- mean(edges_merged$relation_age, na.rm = TRUE)
@@ -774,8 +712,7 @@ emm_merged <- emmeans(model_age_int_merged,
                        ~ relation_age_c * pair_origin,
                        at = list(
                          relation_age_c = seq(1, 11, by = 1) - mean_age,
-                         colony_size_c  = 0,
-                         unknown_age    = "FALSE"
+                         colony_size_c  = 0
                        ),
                        type = "response") %>%
   as.data.frame() %>%
@@ -813,7 +750,7 @@ ggsave(here("results","figures","H3_merged.png"), p, width = 6, height = 4.5, dp
 ## 7.1 other plots
 ```{r}
 # observed means per colony
-obs_GB2 <- edges_GB2_final %>%
+obs_means_GB2 <- edges_GB2_final %>%
   mutate(pair_origin = factor(as.character(pair_origin),
                                levels = c("other", "mother-unrelated-juvenile",
                                           "juvenile-juvenile", "mother-daughter"))) %>%
@@ -821,7 +758,7 @@ obs_GB2 <- edges_GB2_final %>%
   summarise(mean_SRI = mean(weight, na.rm = TRUE), n = n(), .groups = "drop") %>%
   mutate(colony = "GB2")
 
-obs_UA <- edges_UA_final %>%
+obs_means_UA <- edges_UA_final %>%
   mutate(pair_origin = factor(as.character(pair_origin),
                                levels = c("other", "mother-unrelated-juvenile",
                                           "juvenile-juvenile", "mother-daughter"))) %>%
@@ -829,7 +766,7 @@ obs_UA <- edges_UA_final %>%
   summarise(mean_SRI = mean(weight, na.rm = TRUE), n = n(), .groups = "drop") %>%
   mutate(colony = "UA")
 
-obs_all <- bind_rows(obs_GB2, obs_UA)
+obs_all <- bind_rows(obs_means_GB2, obs_means_UA)
 
 # predictions from separate colony models
 mean_age_GB2 <- mean(edges_GB2_final$relation_age,
@@ -841,8 +778,7 @@ emm_GB2 <- emmeans(model_age_int_GB2,
                     ~ relation_age_c * pair_origin,
                     at = list(
                       relation_age_c = seq(2, 11, by = 1) - mean_age_GB2,
-                      colony_size_c  = 0,
-                      unknown_age    = "FALSE"
+                      colony_size_c  = 0
                     ),
                     type = "response") %>%
   as.data.frame() %>%
@@ -857,8 +793,7 @@ emm_UA <- emmeans(model_age_int_UA,
                    ~ relation_age_c * pair_origin,
                    at = list(
                      relation_age_c = seq(2, 9, by = 1) - mean_age_UA,
-                     colony_size_c  = 0,
-                     unknown_age    = "FALSE"
+                     colony_size_c  = 0
                    ),
                    type = "response") %>%
   as.data.frame() %>%
