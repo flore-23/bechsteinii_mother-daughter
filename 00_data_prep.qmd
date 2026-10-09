@@ -5,29 +5,6 @@ author:
   email: flore.michel@unil.ch
   affiliation:
     name: University of Lausanne, Departement of Ecology and Evolution
-execute:                            # Global options for code chunks
-  echo: true                        # Show code globally
-  warning: false                    # Hide warnings globally
-  freeze: auto                      # Only re-render if code changes
-  cache: true                       # Cache results (best for heavy computations)
-format:                             # Global options for rendering the document
-  html:                              # Defines render format in this case html
-    margin-top: 30px
-    toc: true                       # Includes table of content
-    toc-location: left              # Sets the location of the toc
-    toc-depth: 2                    # Sets the number of levels for the toc
-    number-sections: true           # Add automatic section number
-    number-depth: 2                 # Sets the maximum numberin level e.g. 2.2.1
-    #code-fold: true                 # Code chunk can be expanded
-    fig-cap-location: bottom        # Location of figure captions [top, bottom]
-    lightbox: true                  # When clicking on a figure it is expanded
-    embed-resources: true           # Make the report a stand-alone for sharing
-    theme:                          # Set the theme of the report 
-      light: litera                   # [default, cerulean, cosmo, flatly, journal, ...]
-      dark: slate                   # [cyborg, darkly, solar, superhero, vapor, ...]
-#bibliography: bib/workshop.bib.     # References used in the document
-#csl: bib/apa.csl                    # Citation style for rendering the references
-bibliography: references.bib
 ---
 
 # Introduction
@@ -39,8 +16,6 @@ This first script imports, clean and prepares raw association data collected fro
 -   **Raw roost datasets**: one data set for each year, each row representing a day of observation, column names represent the individuals in the colony. Number in the table represent the roost number where the individual spent the day.
 
 -   **Mother-daughter file**: One for each colony, each row is a mother-daughter pair. Column name "rfid_mom" (mother ID), "rfid_off" (daughter ID), year and a unique pairID composed of the rfid_mom and rfid_off, order alphabetically to ensure universal ID.
-
-### Load packages
 
 ```{r}
 #| label: packages
@@ -58,18 +33,28 @@ library(igraph)
 library(data.table)
 ```
 
-# Load datasets
-
-### Mother-daughter lists
-
+Load mother-daughter lists
 ```{r}
 mother_daughter_GB2 <- read.csv(here("data","mother_daughter_GB2.csv"))
 mother_daughter_UA <- read.csv(here("data","mother_daughter_UA.csv"))
 ```
 
-# Load yearly roost data
+Load colony size dataset
+```{r load-colony-size}
+colony_size_GB2 <- read.csv(
+  here("data", "saved_matrices", "GB2", "colony_size_df.csv"),
+  header = TRUE, sep = ","
+) %>% mutate(year = as.numeric(year))
 
-## GB2
+colony_size_UA <- read.csv(
+  here("data", "saved_matrices", "UA", "colony_size_UA.csv"),
+  header = TRUE, sep = ","
+) %>% mutate(year = as.numeric(year))
+```
+
+# 1 - GB2
+
+### 1.1 Load yearly roost data
 
 ```{r}
 #| label: load_roost_df
@@ -209,7 +194,7 @@ GB2_2023<- GB2_2023 %>%
   mutate(across(-date, as.character))
 ```
 
-# Create GBI and association matrices, and edge lists from raw association datasets
+### 1.2 GBI and edge lists
 
 The **Group-by-Individual matrix** (GBI), is the format required for most function in the <igraph> and <asnipe> packages. We can create the GBI matrix from raw roost data by merging day and box number together, creating unique "group" of individuals that roosted all together in the same day in the same roost. This transforms the dataset into a presence/absence matrix. The column names remain the individual ID.  
 
@@ -291,7 +276,7 @@ for (y in 2013:2023) {
 }
 ```
 
-#### Create the edge list of all the years together
+### 1.3 merge all years
 ```{r}
 edges_all <- lapply(2013:2023, function(y) {
   #load the created edge lists for each year
@@ -308,8 +293,8 @@ write.csv(edges_GB2, here("data","saved_matrices","GB2","edge_list_GB2.csv"), ro
 
 Then, we can do the same for the other colony
 
-## UA 
-#### load raw association data
+## 2 - UA 
+### 2.1 load association data
 ```{r}
 #| output: false
 #| code-fold: true
@@ -412,7 +397,7 @@ UA_2023<-UA_2023[c(1:29)]
 colnames(UA_2023)[colnames(UA_2023) == "Date"] <- "date"
 ```
 
-# Create GBI and association matrices, and edge lists from raw association datasets
+### 2.2 GBI, edge lists 
 ```{r}
 #Create a function that will create the GBI, the association matrices (net), the network objects and the edge list for all years 
 create_matrices_UA <- function(data, year, colony, mother_daughter_df) {
@@ -489,7 +474,7 @@ for (y in 2013:2023) {
 }
 ```
 
-#### Create the edge list of all the years together
+### 2.3 merge
 ```{r}
 edges_all <- lapply(2013:2023, function(y) {
   #load the created edge lists for each year
@@ -504,7 +489,7 @@ edges_UA <- bind_rows(edges_all)
 write.csv(edges_UA, here("data","saved_matrices","UA","edge_list_UA.csv"), row.names = FALSE)
 ```
 
-# Mother - non-related daughter datasets
+# 3 - Mother - non-related daughter datasets
 Creation of a lists that state associations between mothers and non-related daughters, by creating a function that goes into the mother-daughter df, and assign them in a role for a specific year, either "mother" or "daughter"
 
 ```{r}
@@ -555,7 +540,7 @@ make_mom_juv_for_year <- function(y, edges, md_table) {
       # mother with a non-own juvenile
       ((from_role == "rfid_mom" & to_role == "rfid_off") |
         (from_role == "rfid_off" & to_role == "rfid_mom")
-      ) ~ "mother-random-juvenile",
+      ) ~ "mother-unrelated-daughter",
 
       # everything else
       TRUE ~ "other"
@@ -588,3 +573,143 @@ mom_juv_UA <- map_dfr(
 write.csv(mom_juv_GB2, here("data","saved_matrices","GB2","mom_juv_GB2.csv"), row.names = FALSE)
 write.csv(mom_juv_UA, here("data","saved_matrices","UA","mom_juv_UA.csv"), row.names = FALSE)
 ```
+
+# 4 - Daughter-daughter associations 
+-> Create the daughters pairs table
+```{r}
+juv_pairs_GB2 <- mother_daughter_GB2 %>%
+  group_by(year) %>%
+  # get all combinations of juveniles within the same year
+  summarise(
+    pairs = list(as.data.frame(t(combn(rfid_off, 2)))),
+    .groups = "drop"
+  ) %>%
+  unnest(pairs) %>%
+  rename(juv1 = V1, juv2 = V2) %>%
+  # create sorted pairID
+  mutate(pairID = if_else(juv1 < juv2,
+                          paste(juv1, juv2, sep = "-"),
+                          paste(juv2, juv1, sep = "-")))
+
+juv_pairs_GB2
+
+write.csv(juv_pairs_GB2,here("data","juv_pairs_GB2.csv"))
+
+#-- UA
+juv_pairs_UA <- mother_daughter_UA %>%
+  group_by(year) %>%
+  # get all combinations of juveniles within the same year
+  summarise(
+    pairs = list(as.data.frame(t(combn(rfid_off, 2)))),
+    .groups = "drop"
+  ) %>%
+  unnest(pairs) %>%
+  rename(juv1 = V1, juv2 = V2) %>%
+  # create sorted pairID
+  mutate(pairID = if_else(juv1 < juv2,
+                          paste(juv1, juv2, sep = "-"),
+                          paste(juv2, juv1, sep = "-")))
+
+juv_pairs_UA
+
+write.csv(juv_pairs_UA,here("data","juv_pairs_UA.csv"))
+```
+
+# 5- create final edge list
+```{r}
+# Prepare 4 pair type edge list ----- 
+build_four_type_edges <- function(edges, mom_juv, juv_pairs, colony_size) {
+  edges %>%
+    left_join(colony_size, by = "year") %>%
+    
+    # join mother-unrelated juveniles labels — with year, so only labelled in the year the juvenile was marked
+    left_join(
+      mom_juv %>% select(pairID, year, pair_type_2),
+      by = c("pairID", "year")
+    ) %>%
+    
+    # join juv-juv labels — with year, so only labelled in the year both were juveniles
+    left_join(
+      juv_pairs %>% select(pairID, year) %>% mutate(is_juv_juv = TRUE),
+      by = c("pairID", "year")
+    ) %>%
+    
+    mutate(
+      # priority order: MD > M-NRD > juv-juv > other
+      pair_type_2 = case_when(
+        pair_type_2 == "mother-daughter"           ~ "mother-daughter",
+        pair_type_2 == "mother-unrelated-daughter" ~ "mother-unrelated-juvenile",
+        is_juv_juv == TRUE                         ~ "daughter-daughter",
+        TRUE                                       ~ "other"
+      ),
+      pair_type_2 = factor(pair_type_2,
+                           levels = c("other",
+                                      "daughter-daughter",
+                                      "mother-unrelated-juvenile",
+                                      "mother-daughter")),
+      colony_size_c = as.numeric(scale(colony_size, center = TRUE, scale = FALSE))
+    ) %>%
+    select(-is_juv_juv)
+}
+```
+## 3.2 edge lists - add pair types
+
+```{r}
+edge_GB2 <- build_four_type_edges(edges_GB2, mom_juv_GB2, juv_pairs_GB2, colony_size_GB2)
+edge_UA  <- build_four_type_edges(edges_UA,  mom_juv_UA, juv_pairs_UA, colony_size_UA)
+```
+
+
+# measure observation number
+to check sample bias sampling bias
+```{r}
+#put all roosting matrix in list
+roost_list_GB2 <- mget(ls(pattern = "*GB2_20*", envir = .GlobalEnv), envir = .GlobalEnv)
+names(roost_list_GB2) <- gsub("GB2_", "", names(roost_list_GB2))
+
+roost_list_UA <- mget(ls(pattern = "*UA_20*", envir = .GlobalEnv), envir = .GlobalEnv)
+names(roost_list_UA) <- gsub("UA_", "", names(roost_list_UA))
+```
+
+```{r}
+#function
+compute_n_obs <- function(edge_df, roost_list) {
+  edge_df %>%
+    mutate(year_chr = as.character(year)) %>%
+    group_split(year_chr) %>%
+    map_dfr(function(sub_edges) {
+      yr <- unique(sub_edges$year_chr)
+      roost_df <- roost_list[[yr]]
+
+      if (is.null(roost_df)) {
+        sub_edges$n_obs <- NA_integer_
+        return(sub_edges)
+      }
+
+      sub_edges$n_obs <- map_int(sub_edges$pairID, function(pid) {
+        ids <- strsplit(pid, "-", fixed = TRUE)[[1]]
+        if (length(ids) != 2) return(NA_integer_)
+        id1 <- ids[1]; id2 <- ids[2]
+
+        if (!(id1 %in% names(roost_df)) || !(id2 %in% names(roost_df))) {
+          return(NA_integer_)
+        }
+        sum(!is.na(roost_df[[id1]]) | !is.na(roost_df[[id2]]))
+      })
+      sub_edges
+    }) %>%
+    select(-year_chr)
+}
+```
+
+```{r}
+edge_GB2 <- compute_n_obs(edge_GB2, roost_list_GB2)
+edge_UA  <- compute_n_obs(edge_UA,  roost_list_UA)
+```
+
+# 6 - save the edge list
+```{r}
+write.csv(edge_GB2, here("data","saved_matrices","GB2","edge_list_GB2.csv"), row.names = FALSE)
+write.csv(edge_UA, here("data","saved_matrices","UA","edge_list_UA.csv"), row.names = FALSE)
+```
+
