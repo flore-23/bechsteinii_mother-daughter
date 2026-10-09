@@ -499,7 +499,8 @@ cor.test(edges_full$year,  edges_full$colony_size) #0.7547435
 
 ```{r}
 model_full <- glmmTMB(
-  weight_beta ~ pair_type_2 + colony_ID + colony_size_c + (1 | pairID) + (1 | year),
+  # colony size not included: it varies only between years (year random effect), and is tested in H2
+  weight_beta ~ pair_type_2 + colony_ID + (1 | pairID) + (1 | year),
   data   = edges_full,
   family = beta_family()
 )
@@ -782,8 +783,7 @@ coef_names_merged <- c(
   "pair_type_2daughter-daughter",
   "pair_type_2mother-unrelated-juvenile",
   "pair_type_2mother-daughter",
-  "colony_IDUA",
-  "colony_size_c"
+  "colony_IDUA"
 )
 
 obs_coef_merged     <- fixef(model_full)$cond[coef_names_merged]
@@ -797,7 +797,7 @@ for (i in seq_len(n_perm)) {
     mutate(pair_type_2 = sample(pair_type_2)) %>%
     ungroup()
 
-  m <- glmmTMB(weight_beta ~ pair_type_2 + colony_ID + colony_size_c + (1 | pairID) + (1 | year),
+  m <- glmmTMB(weight_beta ~ pair_type_2 + colony_ID + (1 | pairID) + (1 | year),
                family = beta_family(), data = d)
   perm_merged[i, ] <- fixef(m)$cond[coef_names_merged]
 }
@@ -881,7 +881,7 @@ pair_colors <- c("mother-daughter" = "#cf67b3",
 # network plot, original simple version, circles only
 plot_network_year <- function(edge_df, target_year,colony_name) {
 
-  df_year <- edge_df %>% filter(year == target_year)
+  df_year <- edge_df %>% filter(year == target_year, weight > 0) # only pairs that co-roosted
 
   df_year$pair_type_2 <- factor(df_year$pair_type_2,
                                levels = c("other", "mother-unrelated-juvenile",

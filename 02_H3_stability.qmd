@@ -393,31 +393,6 @@ library(DHARMa)
 sim_GB2 <- simulateResiduals(model_age_int_GB2, plot = TRUE)
 sim_UA  <- simulateResiduals(model_age_int_UA,  plot = TRUE)
 
-
-# - check 6: within-dyad slope per pair type (already done but rerun on colony-specific data)
-within_dyad_GB2 <- edges_GB2_final %>%
-  group_by(pairID, pair_origin) %>%
-  filter(n() > 2) %>%
-  summarise(slope = coef(lm(weight ~ relation_age))[2],
-            .groups = "drop") %>%
-  group_by(pair_origin) %>%
-  summarise(mean_slope = mean(slope),
-            prop_positive = mean(slope > 0),
-            .groups = "drop")
-
-within_dyad_UA <- edges_UA_final %>%
-  group_by(pairID, pair_origin) %>%
-  filter(n() > 2) %>%
-  summarise(slope = coef(lm(weight ~ relation_age))[2],
-            .groups = "drop") %>%
-  group_by(pair_origin) %>%
-  summarise(mean_slope = mean(slope),
-            prop_positive = mean(slope > 0),
-            .groups = "drop")
-
-print(within_dyad_GB2)
-print(within_dyad_UA)
-
 ```
 
 
