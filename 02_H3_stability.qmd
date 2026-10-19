@@ -4,7 +4,7 @@ metadata-files:
   - _quarto.yml
 ---
 
-# overview
+# Overview
 
 This script addresses **Hypothesis 3**: do bonds formed early in life persist and strengthen across years, and does this differ between pair types? It also assess how temporal pattern can be influenced by demographic context, by comparing two colonies. 
 
@@ -34,17 +34,18 @@ library(performance)
 library(ggeffects)
 library(broom.mixed)
 library(emmeans)
+source(here("Rfunc", "sna_functions.R")) # Call custom functions for sna analysis
 
-dir.create(here("results", "tables"),  recursive = TRUE, showWarnings = FALSE)
-dir.create(here("results", "figures"), recursive = TRUE, showWarnings = FALSE)
+#dir.create(here("results", "tables"),  recursive = TRUE, showWarnings = FALSE)
+#dir.create(here("results", "figures"), recursive = TRUE, showWarnings = FALSE)
 ```
 
 ---
 
-# 1  load data (full years)
+# 1  Load data (full years)
 
-## 1.1 yearly edge list 
-```{r}
+## 1.1 Yearly edge list 
+```{r load_edge_data}
 #| echo: true
 #GB2 —————
 edge_G2013<-read.csv(here("data_publish","saved_matrices","GB2","full","full_edge_G2013.csv"))
@@ -107,6 +108,13 @@ edges_UA_full<-rbind(edge_U2013,edge_U2014,edge_U2015,edge_U2016,edge_U2017,edge
 edges_UA_full$weight<-as.numeric(edges_UA_full$weight)
 ```
 
+:::{.callout-note}
+## Comment - Load data
+Load the data using a for loop to avoid code repetition. See example in file `01_H1_H2_firstyear_MD.qmd`
+Why year 2016 in GB2 and UA is loaded differently? 
+:::
+
+
 ## 1.2  mother-daughter files
 
 ```{r load}
@@ -147,7 +155,7 @@ colony_size_UA <- read.csv(
 
 # 2  Prepare edge lists
 
-# 2.1 function
+# 2.1 Load function
 This add pairID, relation_age and pair type labels to the edge lists
 - relation_age for MD pairs = daughter age (years since birth)
 - relation_age for other pairs = years since first observed together
@@ -155,87 +163,6 @@ This add pairID, relation_age and pair type labels to the edge lists
 Pairs in which both individuals were already adults in 2013 (present in 2013 and not born that year) are removed: their relationship started before the study, so their relationship age is unknown and they may include mother-daughter pairs from before 2013.
 
 Each pair has a single pair type for all years (priority: mother-daughter > mother-unrelated juvenile > juvenile-juvenile > other), so that each pair appears only once per year.
-
-```{r}
-prepare_edges <- function(edges_full, md_file, mom_juv, juv_pairs, colony_size_df) {
-
-  # sorted pairID
-  df <- edges_full %>%
-    mutate(pairID = if_else(from < to,
-                            paste(from, to, sep = "-"),
-                            paste(to, from, sep = "-")))
-
-  # remove pairs of individuals that were both adults in 2013 (relationship age unknown)
-  ind_2013    <- unique(c(df$from[df$year == 2013], df$to[df$year == 2013]))
-  adults_2013 <- setdiff(ind_2013, md_file$rfid_off[md_file$year == 2013])
-  df <- df %>%
-    filter(!(from %in% adults_2013 & to %in% adults_2013))
-
-  # one pair type per pair
-  muj_pairs <- unique(mom_juv$pairID[mom_juv$pair_type_2 == "mother-unrelated-daughter"])
-  df <- df %>%
-    mutate(pair_origin = case_when(
-      pairID %in% md_file$pairID   ~ "mother-daughter",
-      pairID %in% muj_pairs        ~ "mother-unrelated-juvenile",
-      pairID %in% juv_pairs$pairID ~ "juvenile-juvenile",
-      TRUE                         ~ "other"
-    ))
-
-  # daughter age for MD pairs
-  df <- df %>%
-    mutate(
-      first_year_md = md_file$year[match(pairID, md_file$pairID)],
-      daughter_age  = if_else(
-        is.na(first_year_md), NA_real_, as.numeric(year - first_year_md + 1)
-      )
-    )
-
-  # relation age variable
-  df <- df %>%
-    group_by(pairID) %>%
-    mutate(first_year_overall = min(year)) %>%
-    ungroup() %>%
-    mutate(relation_age = if_else(
-      pair_origin == "mother-daughter",
-      daughter_age,
-      as.numeric(year - first_year_overall + 1)
-    ))
-
-  # remove first summer of early-life pairs (juveniles marked in August)
-  df <- df %>%
-    filter(!(pair_origin %in% c("mother-daughter",
-                               "juvenile-juvenile",
-                               "mother-unrelated-juvenile") &
-           relation_age == 1))
-
-  # each pair only once per year
-  stopifnot(!anyDuplicated(df[, c("pairID", "year")]))
-
-  # colony size
-  df <- df %>%
-    left_join(colony_size_df, by = "year") %>%
-    mutate(colony_size_c = as.numeric(
-      scale(colony_size, center = TRUE, scale = FALSE)
-    ))
-
-  # beta transformation, after all filtering
-  n <- nrow(df)
-  df <- df %>%
-    mutate(weight_beta = (weight * (n - 1) + 0.5) / n)
-
-  # factor levels and centre relation_age
-  df %>%
-    mutate(
-      pair_origin = factor(pair_origin,
-                           levels = c("other",
-                                      "mother-unrelated-juvenile",
-                                      "juvenile-juvenile",
-                                      "mother-daughter")),
-      relation_age_c = relation_age - mean(relation_age, na.rm = TRUE)
-    )
-}
-
-```
 
 # 2.2 edge list
 ```{r}
@@ -249,18 +176,9 @@ edges_UA_final  <- prepare_edges(edges_UA_full,  mother_daughter_UA,
 # 2.3 check
 Number of pairs per pair type, and number of pairs removed (both individuals adults in 2013)
 ```{r}
-count_pairs <- function(edges_full, edges_final) {
-  all_pairs <- edges_full %>%
-    mutate(pairID = if_else(from < to, paste(from, to, sep = "-"), paste(to, from, sep = "-")))
-  list(
-    pairs_total   = n_distinct(all_pairs$pairID),
-    pairs_kept    = n_distinct(edges_final$pairID),
-    pairs_by_type = edges_final %>% distinct(pairID, pair_origin) %>% count(pair_origin)
-  )
-}
 
-count_pairs(edges_GB2_full, edges_GB2_final)
-count_pairs(edges_UA_full,  edges_UA_final)
+count_pairs2(edges_GB2_full, edges_GB2_final)
+count_pairs2(edges_UA_full,  edges_UA_final)
 ```
 
 Check relationship age range
@@ -389,7 +307,7 @@ car::vif(lm_check_UA)
 car::vif(lm_check_merged)
 
 # - check 5: DHARMa residual diagnostics
-library(DHARMa)
+
 sim_GB2 <- simulateResiduals(model_age_int_GB2, plot = TRUE)
 sim_UA  <- simulateResiduals(model_age_int_UA,  plot = TRUE)
 
@@ -401,8 +319,7 @@ sim_UA  <- simulateResiduals(model_age_int_UA,  plot = TRUE)
 # 5  Permutations 
 Node-label permutations: pair types are shuffled among dyads within each year (and colony), and the observed models are refitted on each permuted dataset.
 
-## 5.0 Functions
-```{r}
+```{r coef_names}
 n_perm <- 100 # 1000 for the final results
 
 coef_names <- c(
@@ -417,68 +334,23 @@ coef_names_int <- c(
   "relation_age_c:pair_originmother-daughter", 
   "relation_age_c:pair_originjuvenile-juvenile"
 )
+
 ```
 
-#### Permutation function
-Refits the main-effects and interaction models on `n_perm` permuted datasets
-```{r}
-run_permutations <- function(data, formula_main, formula_int, n_perm, groups = "year") {
-  perm_main <- matrix(NA, n_perm, length(coef_names),     dimnames = list(NULL, coef_names))
-  perm_int  <- matrix(NA, n_perm, length(coef_names_int), dimnames = list(NULL, coef_names_int))
+:::{.callout-warning}
+The varibales `coef_names` and `coef_names_int` are outside the function definition `run_permutation` this is a potential problem if the function is ran without defining this variables. 
 
-  for (i in seq_len(n_perm)) {
-    d <- data %>%
-      group_by(across(all_of(groups))) %>%
-      mutate(pair_origin = sample(pair_origin)) %>%
-      ungroup()
+A better solution is to include them inside the function, so it would ran independently of their definition. 
 
-    m <- glmmTMB(formula_main, family = beta_family(), data = d)
-    perm_main[i, ] <- fixef(m)$cond[coef_names]
-
-    m_int <- glmmTMB(formula_int, family = beta_family(), data = d)
-    perm_int[i, ] <- fixef(m_int)$cond[coef_names_int]
-  }
-  list(main = perm_main, int = perm_int)
-}
-```
-
-#### p-value function
-```{r}
-#two-tailed permutation p-values
-compute_perm_pvalues <- function(obs_coef, perm_matrix) {
-  sapply(names(obs_coef), function(nm)
-    mean(abs(perm_matrix[, nm]) >= abs(obs_coef[nm]), na.rm = TRUE)
-  )
-}
-```
-
-#### Permutation results table
-```{r}
-make_perm_table <- function(obs_coef, perm_matrix, p_values) {
-  data.frame(term = names(obs_coef), observed = as.numeric(obs_coef),
-             stringsAsFactors = FALSE) %>%
-    left_join(
-      as.data.frame(perm_matrix) %>%
-        pivot_longer(everything(), names_to = "term", values_to = "value") %>%
-        group_by(term) %>%
-        summarise(perm_mean = mean(value, na.rm = TRUE), perm_sd = sd(value, na.rm = TRUE), .groups = "drop"),
-      by = "term"
-    ) %>%
-    mutate(p_value = p_values[term]) %>%
-    # node-label permutations only test terms involving pair type,
-    # the main effect of relationship age is assessed with the model's Wald test
-    filter(grepl("pair_origin", term)) %>%
-    arrange(desc(observed))
-}
-```
-
+I note that these variables are also used later, nevertheless defining them inside the function is safer. 
+:::
 
 ## 5.1  GB2
 ```{r perm-gb2}
 set.seed(23)
 perm_GB2_all <- run_permutations(edges_GB2_final,
                                  formula(model_age_GB2), formula(model_age_int_GB2),
-                                 n_perm)
+                                 n_perm = 100)
 perm_GB2     <- perm_GB2_all$main
 perm_int_GB2 <- perm_GB2_all$int
 
@@ -538,7 +410,7 @@ write.csv(table_int_UA,
           here("results", "tables", "H3_perm_UA_interaction.csv"), row.names = FALSE)
 ```
 
-## 5.3 - merged model
+## 5.3 - Merged model
 Pair types are shuffled within each colony and year
 ```{r perm-merged}
 set.seed(23)
@@ -581,9 +453,6 @@ pair_colors <- c("mother-daughter" = "#cf67b3",
                   "mother-unrelated-juvenile" = "#3d4f91",
                   "juvenile-juvenile" = "#7c9fd9",
                   "other" = "#999999")
-library(emmeans)
-library(dplyr)
-library(ggplot2)
 
 # prediction grid, integer relationship ages
 # uncentre: relation_age_c = relation_age - mean_age
@@ -803,5 +672,10 @@ ggplot() +
 ```
 
 
----
+:::{.callout-note}
+- Functions used in this report are now in the file Rfunc/sna_functions.
+- The function `run_permutations` use two variables `coef_names` and `coef_names_int` that are outside the function definition, this compromises that it works independently.
+- Please be more descriptive in each subsection so the naive reader can follow the logic of the analysis.
+:::
 
+---
